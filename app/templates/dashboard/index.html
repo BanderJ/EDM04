@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        padding: 30px 0;
+        border-bottom: 2px solid #f0f0f0;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-card.success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .stat-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .stat-card.danger {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .stat-card.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+    
+    .stat-icon {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .progress-bar-animated {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .alert-item {
+        border-left: 4px solid #f5576c;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        background: #f9f9f9;
+        border-radius: 4px;
+    }
+    
+    .alert-item.info {
+        border-left-color: #4facfe;
+    }
+    
+    .alert-item.warning {
+        border-left-color: #f093fb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1><i class="fas fa-chart-line"></i> Panel de Control</h1>
+    <p class="text-muted">Bienvenido, {{ current_user.full_name }}. Aquí está el resumen de tu sistema.</p>
+</div>
+
+<!-- Tarjetas de estadísticas -->
+<div class="row">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-certificate"></i>
+            </div>
+            <div class="stat-value">{{ total_certifications }}</div>
+            <div class="stat-label">Total de Certificaciones</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-value">{{ vigent_certifications }}</div>
+            <div class="stat-label">Vigentes</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="stat-value">{{ expiring_certifications }}</div>
+            <div class="stat-label">Próximas a Vencer</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card danger">
+            <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-value">{{ expired_certifications }}</div>
+            <div class="stat-label">Vencidas</div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h5>Estado de Certificaciones</h5>
+            <canvas id="certChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h5>Auditorías</h5>
+            <canvas id="auditChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Contenido adicional -->
+<div class="row mt-4">
+    <!-- Certificaciones próximas a vencer -->
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h5><i class="fas fa-bell"></i> Certificaciones Próximas a Vencer (30 días)</h5>
+            {% if upcoming_certifications %}
+                <div class="list-group">
+                    {% for cert in upcoming_certifications %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ cert.name }}</h6>
+                            <small class="text-muted">{{ cert.norm }} - Vence: <strong>{{ cert.expiration_date.strftime('%d/%m/%Y') }}</strong></small>
+                        </div>
+                        <a href="{{ url_for('certifications.edit_certification', cert_id=cert.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted"><i class="fas fa-check-circle"></i> No hay certificaciones próximas a vencer.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Auditorías recientes -->
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h5><i class="fas fa-clipboard-check"></i> Auditorías Recientes</h5>
+            {% if recent_audits %}
+                <div class="list-group">
+                    {% for audit in recent_audits %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ audit.evaluated_area }}</h6>
+                            <small class="text-muted">
+                                Tipo: <strong>{{ audit.audit_type }}</strong> - 
+                                Estado: <span class="badge bg-{{ 'success' if audit.status == 'completada' else 'warning' }}">{{ audit.status }}</span>
+                            </small>
+                        </div>
+                        <a href="{{ url_for('audits.view_audit', audit_id=audit.id) }}" class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted"><i class="fas fa-info-circle"></i> No hay auditorías registradas.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Alertas del sistema -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="chart-container">
+            <h5><i class="fas fa-exclamation-triangle"></i> Alertas del Sistema</h5>
+            {% if pending_alerts %}
+                {% for alert in pending_alerts %}
+                <div class="alert-item {% if alert.severity == 'critical' %}warning{% elif alert.severity == 'warning' %}info{% endif %}">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ alert.title }}</strong>
+                            <p class="mb-0 text-muted small">{{ alert.message }}</p>
+                        </div>
+                        <button class="btn btn-sm btn-link mark-as-read" data-alert-id="{{ alert.id }}">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted"><i class="fas fa-check-circle"></i> No hay alertas pendientes.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Indicadores clave -->
+<div class="row mt-4 mb-4">
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h5>Porcentaje de Certificaciones Vigentes</h5>
+            <div class="progress" style="height: 25px;">
+                <div class="progress-bar progress-bar-animated" role="progressbar" 
+                     style="width: {{ certification_percentage }}%;" 
+                     aria-valuenow="{{ certification_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ certification_percentage }}%
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h5>Auditorías Completadas</h5>
+            <div class="progress" style="height: 25px;">
+                <div class="progress-bar bg-success progress-bar-animated" role="progressbar" 
+                     style="width: {{ audit_percentage }}%;" 
+                     aria-valuenow="{{ audit_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ audit_percentage }}%
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Gráfico de Certificaciones
+    const certCtx = document.getElementById('certChart').getContext('2d');
+    new Chart(certCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Vigentes', 'Próximas a Vencer', 'Vencidas'],
+            datasets: [{
+                data: [{{ vigent_certifications }}, {{ expiring_certifications }}, {{ expired_certifications }}],
+                backgroundColor: ['#11998e', '#f093fb', '#fa709a'],
+                borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Gráfico de Auditorías
+    const auditCtx = document.getElementById('auditChart').getContext('2d');
+    new Chart(auditCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completadas', 'Programadas'],
+            datasets: [{
+                data: [{{ completed_audits }}, {{ scheduled_audits }}],
+                backgroundColor: ['#4facfe', '#f5576c'],
+                borderColor: ['#ffffff', '#ffffff'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Marcar alertas como leídas
+    document.querySelectorAll('.mark-as-read').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const alertId = this.getAttribute('data-alert-id');
+            fetch(`/dashboard/alerts/mark-as-read/${alertId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    this.parentElement.parentElement.style.opacity = '0.5';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

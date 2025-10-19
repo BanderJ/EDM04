@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Política - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section h5 {
+        color: #2c5282;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #4299e1;
+        padding-bottom: 10px;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #e53e3e;
+    }
+    
+    .info-box {
+        background: #bee3f8;
+        border-left: 4px solid #3182ce;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> Nueva Política</h1>
+        <p class="text-muted">Crear una nueva política de la empresa</p>
+    </div>
+    <div>
+        <a href="{{ url_for('policies.list_policies') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <!-- Info Box -->
+        <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <strong>Información:</strong> Las políticas publicadas estarán disponibles para todos los usuarios. 
+            Si se requiere confirmación, los usuarios deberán aceptarlas antes de continuar.
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('policies.new_policy') }}" id="policyForm">
+                    
+                    <!-- Sección: Información Básica -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-info-circle"></i> Información Básica</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="title" class="form-label required-field">Título de la Política</label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       placeholder="Ej: Política de Seguridad Alimentaria" required>
+                                <div class="form-text">Nombre descriptivo de la política</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="description" class="form-label required-field">Descripción Breve</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" 
+                                          placeholder="Resumen ejecutivo de la política..." required></textarea>
+                                <div class="form-text">Resumen que se mostrará en el listado</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Contenido -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-align-left"></i> Contenido de la Política</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="content" class="form-label">Contenido Completo</label>
+                                <textarea class="form-control" id="content" name="content" rows="12"
+                                          placeholder="Contenido detallado de la política...
+
+1. Objetivos
+2. Alcance
+3. Responsabilidades
+4. Procedimientos
+5. Referencias"></textarea>
+                                <div class="form-text">Contenido completo de la política (opcional)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Versión y Vigencia -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-code-branch"></i> Versión y Vigencia</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="version" class="form-label">Versión</label>
+                                <input type="text" class="form-control" id="version" name="version" 
+                                       value="1.0" placeholder="Ej: 1.0, 2.1">
+                                <div class="form-text">Versión de la política</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="effective_date" class="form-label required-field">Fecha de Vigencia</label>
+                                <input type="date" class="form-control" id="effective_date" name="effective_date" required>
+                                <div class="form-text">Fecha desde la cual es vigente</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Configuración -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-cog"></i> Configuración</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="requires_confirmation" 
+                                           name="requires_confirmation" value="true" checked>
+                                    <label class="form-check-label" for="requires_confirmation">
+                                        <strong>Requiere Confirmación de Usuarios</strong>
+                                    </label>
+                                    <div class="form-text">Los usuarios deberán aceptar esta política</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="is_active" 
+                                           name="is_active" value="true" checked>
+                                    <label class="form-check-label" for="is_active">
+                                        <strong>Publicar Inmediatamente</strong>
+                                    </label>
+                                    <div class="form-text">La política estará activa al guardar</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('policies.list_policies') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                        <button type="reset" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo"></i> Limpiar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar Política
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Establecer fecha de vigencia por defecto como hoy
+        const today = new Date().toISOString().split('T')[0];
+        $('#effective_date').val(today);
+        
+        // Contador de caracteres para descripción
+        $('#description').on('input', function() {
+            const length = $(this).val().length;
+            const maxLength = 500;
+            if (length > maxLength) {
+                $(this).val($(this).val().substring(0, maxLength));
+            }
+        });
+        
+        // Validación antes de enviar
+        $('#policyForm').on('submit', function(e) {
+            const title = $('#title').val().trim();
+            const description = $('#description').val().trim();
+            
+            if (title.length < 5) {
+                e.preventDefault();
+                alert('El título debe tener al menos 5 caracteres');
+                $('#title').focus();
+                return false;
+            }
+            
+            if (description.length < 10) {
+                e.preventDefault();
+                alert('La descripción debe tener al menos 10 caracteres');
+                $('#description').focus();
+                return false;
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,168 @@
+================================================================================
+                    🚀 INSTRUCCIONES SÚPER SIMPLES
+                   Para Configurar Tu Base de Datos
+================================================================================
+
+📝 SOLO NECESITAS HACER ESTO:
+==============================
+
+PASO 1: Copiar el archivo de configuración
+-------------------------------------------
+Abre PowerShell o CMD en la carpeta del proyecto y ejecuta:
+
+    copy .env.example .env
+
+¡Listo! Ya creaste tu archivo de configuración.
+
+
+PASO 2: Editar SOLO el archivo .env
+------------------------------------
+Abre el archivo .env con Notepad:
+
+    notepad .env
+
+Dentro verás algo así:
+
+    ┌───────────────────────────────┐
+    │ DB_USER=root                  │
+    │ DB_PASSWORD=                  │
+    │ DB_HOST=127.0.0.1            │
+    │ DB_PORT=3306         ← AQUÍ  │
+    │ DB_NAME=frutos_oro_db        │
+    └───────────────────────────────┘
+
+✅ CAMBIAR SOLO ESTA LÍNEA (si es necesario):
+
+   DB_PORT=3306
+   
+   • Si tu XAMPP usa puerto 3306 → No cambies nada
+   • Si tu XAMPP usa puerto 3307 → Cambia a: DB_PORT=3307
+
+✅ Y ESTA (si pusiste contraseña a MySQL):
+
+   DB_PASSWORD=
+   
+   • Si NO pusiste contraseña → Déjalo vacío (así está bien)
+   • Si pusiste contraseña → Escríbela: DB_PASSWORD=tu_password
+
+
+PASO 3: Guardar y cerrar
+-------------------------
+En Notepad:
+• Archivo → Guardar
+• Cerrar
+
+¡Ya está! No necesitas tocar NINGÚN otro archivo.
+
+
+PASO 4: Verificar que funciona
+-------------------------------
+Ejecuta este comando:
+
+    python verificar_conexion.py
+
+Si ves ✅ → ¡Todo bien! Continúa al paso 5
+Si ves ❌ → Lee el mensaje de error, probablemente sea el puerto
+
+
+PASO 5: Ejecutar la aplicación
+-------------------------------
+    python app.py
+
+Abre tu navegador en: http://localhost:5000
+
+Usuario: admin
+Contraseña: admin123
+
+
+================================================================================
+                         ❓ PREGUNTAS FRECUENTES
+================================================================================
+
+❓ ¿Qué archivo modifico?
+   ✅ Solo modifica: .env
+   ❌ NO modifiques: config.py, app.py, models.py, routes.py
+
+❓ ¿Cómo sé qué puerto usa mi XAMPP?
+   1. Abre "Panel de Control de XAMPP"
+   2. En la línea de MySQL verás: "Port(s): 3306" o "Port(s): 3307"
+   3. Usa ese número en DB_PORT
+
+❓ ¿Y si mi error dice "Can't connect to MySQL"?
+   1. Verifica que XAMPP MySQL esté corriendo (debe decir "Running")
+   2. Verifica el puerto en .env
+   3. Si usas 3306 y no funciona, prueba 3307 (o viceversa)
+
+❓ ¿Debo modificar config.py?
+   ❌ NO! config.py lee automáticamente desde .env
+   Solo modifica .env
+
+❓ ¿Puedo subir mi archivo .env a Git?
+   ❌ NO! El archivo .env está en .gitignore (es privado)
+   Solo sube .env.example (sin tus credenciales)
+
+❓ Mi compañero tiene problemas, ¿qué hago?
+   1. Pídele que ejecute: python verificar_conexion.py
+   2. Que te comparta el error
+   3. Probablemente sea el puerto (3306 vs 3307)
+
+
+================================================================================
+                            📋 RESUMEN VISUAL
+================================================================================
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  TÚ SOLO EDITAS:          EL SISTEMA LEE:                      │
+  │                                                                  │
+  │  ┌──────────┐             ┌──────────┐     ┌────────────┐     │
+  │  │   .env   │────────────>│ config.py│────>│ MySQL      │     │
+  │  │          │   Automático│          │     │ Conectado! │     │
+  │  └──────────┘             └──────────┘     └────────────┘     │
+  │      │                                                          │
+  │      └─ DB_PORT=3306                                           │
+  │         DB_PASSWORD=                                            │
+  │         (Cambias aquí)                                          │
+  │                                                                  │
+  │  ❌ NO TOQUES:                                                  │
+  │     • config.py                                                 │
+  │     • app.py                                                    │
+  │     • models.py                                                 │
+  │     • routes.py                                                 │
+  │                                                                  │
+  └─────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                         🎯 CHECKLIST RÁPIDO
+================================================================================
+
+[ ] Copié .env.example a .env
+[ ] Abrí .env con notepad
+[ ] Verifiqué DB_PORT (3306 o 3307 según mi XAMPP)
+[ ] Guardé y cerré el archivo
+[ ] Ejecuté: python verificar_conexion.py
+[ ] Vi ✅ en la verificación
+[ ] Ejecuté: python app.py
+[ ] Abrí http://localhost:5000
+[ ] Hice login con: admin / admin123
+
+
+================================================================================
+                           ¡LISTO! 🎉
+================================================================================
+
+Si completaste el checklist, ya está todo configurado.
+
+⚠️ Recuerda: Solo modifica .env, no toques los archivos .py
+
+
+================================================================================
+📞 AYUDA ADICIONAL
+================================================================================
+
+Si aún tienes problemas, lee estos archivos en orden:
+
+1. CONFIGURAR_MYSQL.txt (más detalles)
+2. README_INSTALACION.md (guía completa)
+3. Ejecuta: python verificar_conexion.py (diagnóstico automático)

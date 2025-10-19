@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Hallazgo #{{ finding.id }} - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .audit-context {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section h5 {
+        color: #2c5282;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #4299e1;
+        padding-bottom: 10px;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #e53e3e;
+    }
+    
+    .finding-metadata {
+        background: #edf2f7;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .severity-badge {
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+    
+    .severity-critica {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .severity-mayor {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .severity-menor {
+        background: #17a2b8;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Contexto de la Auditoría -->
+<div class="audit-context">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0">
+                <i class="fas fa-clipboard-check"></i> 
+                Auditoría #{{ audit.id }} - {{ audit.evaluated_area }}
+            </h5>
+            <small>
+                {{ audit.audit_type.upper() }} | 
+                Programada: {{ audit.scheduled_date.strftime('%d/%m/%Y') }}
+            </small>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark">
+                <i class="fas fa-exclamation-triangle"></i> 
+                {{ audit.findings.count() }} Hallazgos
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="page-header mb-4">
+    <div>
+        <h1><i class="fas fa-exclamation-circle"></i> Editar Hallazgo #{{ finding.id }}</h1>
+        <p class="text-muted">Actualizar información del hallazgo</p>
+    </div>
+    <div>
+        <a href="{{ url_for('audits.view_audit', audit_id=audit.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Auditoría
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <!-- Metadata del Hallazgo -->
+        <div class="finding-metadata">
+            <div class="row">
+                <div class="col-md-3">
+                    <small class="text-muted">Registrado el:</small><br>
+                    <strong>{{ finding.created_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">Última actualización:</small><br>
+                    <strong>{{ finding.updated_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">Severidad actual:</small><br>
+                    <span class="severity-badge severity-{{ finding.severity }}">
+                        {{ finding.severity.upper() }}
+                    </span>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">Estado actual:</small><br>
+                    <span class="badge {% if finding.status == 'cerrado' %}bg-success{% elif finding.status == 'en_proceso' %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ finding.status.upper() }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('audits.edit_finding', audit_id=audit.id, finding_id=finding.id) }}" id="findingForm">
+                    
+                    <!-- Sección: Descripción del Hallazgo -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-file-alt"></i> Descripción del Hallazgo</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="description" class="form-label required-field">Descripción Detallada</label>
+                                <textarea class="form-control" id="description" name="description" rows="4" required>{{ finding.description }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Clasificación -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Clasificación del Hallazgo</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="severity" class="form-label required-field">Severidad</label>
+                                <select class="form-select" id="severity" name="severity" required>
+                                    <option value="critica" {% if finding.severity == 'critica' %}selected{% endif %}>CRÍTICA - Riesgo alto</option>
+                                    <option value="mayor" {% if finding.severity == 'mayor' %}selected{% endif %}>MAYOR - Riesgo medio</option>
+                                    <option value="menor" {% if finding.severity == 'menor' %}selected{% endif %}>MENOR - Riesgo bajo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Acción Correctiva -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-tools"></i> Acción Correctiva</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="corrective_action" class="form-label">Plan de Acción Correctiva</label>
+                                <textarea class="form-control" id="corrective_action" name="corrective_action" rows="4">{{ finding.corrective_action or '' }}</textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="responsible" class="form-label">Responsable de la Corrección</label>
+                                <input type="text" class="form-control" id="responsible" name="responsible"
+                                       value="{{ finding.responsible or '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="deadline" class="form-label">Fecha Límite</label>
+                                <input type="date" class="form-control" id="deadline" name="deadline"
+                                       value="{% if finding.deadline %}{{ finding.deadline.strftime('%Y-%m-%d') }}{% endif %}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Estado y Notas -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-info-circle"></i> Estado y Notas Adicionales</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label required-field">Estado del Hallazgo</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="abierto" {% if finding.status == 'abierto' %}selected{% endif %}>Abierto - Pendiente</option>
+                                    <option value="en_proceso" {% if finding.status == 'en_proceso' %}selected{% endif %}>En Proceso</option>
+                                    <option value="cerrado" {% if finding.status == 'cerrado' %}selected{% endif %}>Cerrado - Corregido</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label for="notes" class="form-label">Notas Adicionales</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3">{{ finding.notes or '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="fas fa-trash"></i> Eliminar Hallazgo
+                        </button>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('audits.view_audit', audit_id=audit.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar este hallazgo?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i> Esta acción no se puede deshacer.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('audits.delete_finding', audit_id=audit.id, finding_id=finding.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Advertencia al cambiar estado a cerrado
+        const originalStatus = '{{ finding.status }}';
+        $('#status').on('change', function() {
+            if ($(this).val() === 'cerrado' && originalStatus !== 'cerrado') {
+                if (!confirm('Al cerrar el hallazgo, se indica que ha sido completamente corregido. ¿Está seguro?')) {
+                    $(this).val(originalStatus);
+                }
+            }
+        });
+        
+        // Validación del formulario
+        $('#findingForm').on('submit', function(e) {
+            const description = $('#description').val().trim();
+            
+            if (description.length < 20) {
+                e.preventDefault();
+                alert('La descripción del hallazgo debe tener al menos 20 caracteres');
+                return false;
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Certificación - Frutos de Oro{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <h1><i class="fas fa-edit"></i> Editar Certificación</h1>
+    <p class="text-muted">{{ certification.name }}</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Estado actual:</strong> 
+                        <span class="status-badge status-{{ certification.status }}">
+                            {{ certification.status.replace('_', ' ').upper() }}
+                        </span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="name" class="form-label">Nombre de la Certificación *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ certification.name }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="norm" class="form-label">Norma *</label>
+                            <input type="text" class="form-control" id="norm" name="norm" 
+                                   value="{{ certification.norm }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="issuing_entity" class="form-label">Entidad Emisora *</label>
+                            <input type="text" class="form-control" id="issuing_entity" name="issuing_entity" 
+                                   value="{{ certification.issuing_entity }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="emission_date" class="form-label">Fecha de Emisión *</label>
+                            <input type="date" class="form-control" id="emission_date" name="emission_date" 
+                                   value="{{ certification.emission_date.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="expiration_date" class="form-label">Fecha de Vencimiento *</label>
+                            <input type="date" class="form-control" id="expiration_date" name="expiration_date" 
+                                   value="{{ certification.expiration_date.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="responsible_id" class="form-label">Responsable *</label>
+                            <select class="form-select" id="responsible_id" name="responsible_id" required>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if user.id == certification.responsible_id %}selected{% endif %}>
+                                    {{ user.full_name }} ({{ user.department }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="document" class="form-label">Documento (PDF)</label>
+                            <input type="file" class="form-control" id="document" name="document" accept=".pdf,.jpg,.png,.doc,.docx">
+                            <small class="text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, DOCX (máx. 50MB)</small>
+                            {% if certification.document_path %}
+                            <div class="mt-2">
+                                <i class="fas fa-file"></i> 
+                                <a href="{{ certification.document_path }}" target="_blank">Ver documento actual</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="notes" class="form-label">Notas</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ certification.notes or '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('certifications.list_certifications') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light mb-3">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-calendar"></i> Información</h5>
+                <hr>
+                <p class="small">
+                    <strong>Creada:</strong> {{ certification.created_at.strftime('%d/%m/%Y %H:%M') }}<br>
+                    <strong>Última actualización:</strong> {{ certification.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                </p>
+            </div>
+        </div>
+
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-bell"></i> Alertas</h5>
+                <hr>
+                <p class="small">
+                    <i class="fas fa-{% if certification.alert_sent_60 %}check{% else %}times{% endif %}"></i> 60 días: {% if certification.alert_sent_60 %}<span class="badge bg-success">Enviada</span>{% else %}<span class="badge bg-secondary">Pendiente</span>{% endif %}<br>
+                    <i class="fas fa-{% if certification.alert_sent_30 %}check{% else %}times{% endif %}"></i> 30 días: {% if certification.alert_sent_30 %}<span class="badge bg-success">Enviada</span>{% else %}<span class="badge bg-secondary">Pendiente</span>{% endif %}<br>
+                    <i class="fas fa-{% if certification.alert_sent_15 %}check{% else %}times{% endif %}"></i> 15 días: {% if certification.alert_sent_15 %}<span class="badge bg-success">Enviada</span>{% else %}<span class="badge bg-secondary">Pendiente</span>{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .status-vigente {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-proxima_vencer {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-vencida {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}

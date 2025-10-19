@@ -1,0 +1,234 @@
+🔧 CONFIGURACIÓN RÁPIDA - PARA EL EQUIPO╔══════════════════════════════════════════════════════════════════════════════╗
+
+==========================================║                                                                              ║
+
+║                  ✅ APLICACIÓN FLASK EJECUTÁNDOSE EXITOSAMENTE              ║
+
+Hola! Este es el sistema de Gestión de Cumplimiento de Frutos de Oro.║                                                                              ║
+
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Si eres nuevo en el proyecto, sigue estos pasos:
+
+🎯 ESTADO ACTUAL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PASO 1: INSTALAR DEPENDENCIAS
+
+------------------------------  ✅ Aplicación Flask iniciada correctamente
+
+1. Instala Python 3.8+ (si no lo tienes)  ✅ Accesible en: http://127.0.0.1:5000
+
+2. Instala XAMPP (para MySQL)  ✅ Modo DEBUG: Activado (desarrollo)
+
+3. Instala Git (para clonar el proyecto)  ✅ Variables de entorno cargadas desde .env
+
+  ⏳ Base de datos: Esperando conexión a XAMPP
+
+
+
+PASO 2: DESCARGAR EL PROYECTO📋 PRÓXIMOS PASOS - CONEXIÓN A XAMPP
+
+------------------------------━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+git clone <URL_DEL_REPOSITORIO>
+
+cd EDM04  1️⃣ Inicia XAMPP (Apache + MySQL)
+
+     → Puerto MySQL: 3307
+
+     → Usuario: root
+
+PASO 3: INSTALAR PAQUETES PYTHON     → Sin contraseña
+
+---------------------------------     → Base de datos: frutos_oro_db
+
+# Crear entorno virtual
+
+python -m venv .venv  2️⃣ Una vez XAMPP está activo, la aplicación se conectará automáticamente
+
+
+
+# Activar entorno virtual  3️⃣ Accede a la aplicación en tu navegador:
+
+.\.venv\Scripts\activate        (Windows)     → http://localhost:5000
+
+source .venv/bin/activate       (Linux/Mac)
+
+  4️⃣ Usa las credenciales de prueba:
+
+# Instalar dependencias     → Usuario: admin
+
+pip install -r requirements.txt     → Contraseña: admin123
+
+
+
+🔧 CONFIGURACIÓN APLICADA
+
+PASO 4: CONFIGURAR TU BASE DE DATOS━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+------------------------------------
+
+🔴 IMPORTANTE: Lee el archivo → CONFIGURAR_MYSQL.txt  📁 config.py (Actualizado)
+
+     → DevelopmentConfig
+
+En resumen:     → Puerto XAMPP: 3307
+
+1. Abre XAMPP y inicia MySQL     → BD: frutos_oro_db
+
+2. Copia el archivo: copy .env.example .env     → Usuario: root (sin contraseña)
+
+3. Edita el archivo .env con tus datos:     → DEBUG: True
+
+   
+
+   DB_USER=root  📄 .env (Configurado)
+
+   DB_PASSWORD=                 ← Vacío en XAMPP por defecto     → DEV_DATABASE_URL=mysql+pymysql://root:@127.0.0.1:3307/frutos_oro_db
+
+   DB_HOST=127.0.0.1     → FLASK_ENV=development
+
+   DB_PORT=3306                 ← Verifica tu puerto en XAMPP     → MAIL_SERVER=smtp.gmail.com
+
+   DB_NAME=frutos_oro_db
+
+📊 INFORMACIÓN DE LA APLICACIÓN
+
+4. Importa la base de datos:━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   • Abre phpMyAdmin: http://localhost/phpmyadmin
+
+   • Crea base de datos: frutos_oro_db  URL: http://127.0.0.1:5000
+
+   • Importa: database/schema.sql  Entorno: development
+
+  Debug: ON (modo desarrollo)
+
+  Puerto: 5000
+
+PASO 5: VERIFICAR CONEXIÓN  Host: 0.0.0.0 (escuchando en todas las interfaces)
+
+---------------------------
+
+python verificar_conexion.py  Módulos cargados:
+
+    ✓ Auth (Autenticación)
+
+Si ves ✅, todo está bien!    ✓ Dashboard (Panel principal)
+
+Si ves ❌, lee los mensajes de error.    ✓ Certifications (Certificaciones)
+
+    ✓ Audits (Auditorías)
+
+    ✓ Policies (Políticas)
+
+PASO 6: EJECUTAR APLICACIÓN    ✓ Reports (Reportes)
+
+----------------------------    ✓ Admin (Administración)
+
+python app.py
+
+🗄️ DATOS DISPONIBLES EN BD
+
+Abre: http://localhost:5000━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Usuario: admin
+
+Contraseña: admin123  Usuarios:
+
+    • admin@frutosoro.com (Administrador)
+
+    • jefe.produccion@frutosoro.com (Jefe Producción)
+
+¿PROBLEMAS?    • jefe.calidad@frutosoro.com (Jefe Calidad)
+
+-----------    • auditor.interno@frutosoro.com (Auditor Interno)
+
+• Revisa CONFIGURAR_MYSQL.txt (guía completa)
+
+• Ejecuta: python verificar_conexion.py  Certificaciones:
+
+• Pregunta al equipo    • GlobalG.A.P. Certificate (vigente)
+
+    • HACCP Certification (vigente)
+
+    • BRC Certification (próxima a vencer)
+
+ARCHIVOS IMPORTANTES:    • ISO 22000:2018 (vigente)
+
+---------------------
+
+📄 CONFIGURAR_MYSQL.txt      → Guía para conectar tu MySQL  Auditorías:
+
+📄 README_INSTALACION.md     → Guía de instalación completa    • 3 auditorías de ejemplo (1 completada, 2 programadas)
+
+📄 COMO_CONECTA_MYSQL.md     → Detalles técnicos de conexión
+
+📄 .env.example              → Plantilla de configuración  Políticas:
+
+    • 2 políticas de ejemplo con datos iniciales
+
+
+
+¡Bienvenido al equipo! 🚀🚀 FUNCIONALIDADES DISPONIBLES
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ Login/Logout
+  ✓ Dashboard con gráficos
+  ✓ Gestión de Certificaciones (CRUD)
+  ✓ Gestión de Auditorías (CRUD)
+  ✓ Gestión de Políticas (CRUD)
+  ✓ Sistema de Alertas
+  ✓ Reportes (PDF/Excel)
+  ✓ Panel de Administración
+  ✓ Registro de Auditoría del Sistema
+
+⚠️ NOTAS IMPORTANTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  • Asegúrate de que XAMPP esté ejecutándose en el puerto 3307
+  • La base de datos frutos_oro_db debe existir
+  • Las tablas se crearán automáticamente si no existen
+  • En desarrollo, DEBUG está activado
+  • No usar en producción con DEBUG=True
+
+💻 SOLUCIÓN DE PROBLEMAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Error: "Can't connect to MySQL server"
+  → Solución: Inicia XAMPP (Apache + MySQL)
+
+  Error: "Base de datos no encontrada"
+  → Solución: Ejecuta el script schema.sql para crear las tablas
+
+  Error: "Puerto ya en uso"
+  → Solución: Cambia el puerto en app.py o cierra la aplicación actual
+
+  Error de rutas/templates:
+  → Verifica que las carpetas estén en la estructura correcta
+
+📚 ARCHIVOS RELACIONADOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  • config.py → Configuración de conexión
+  • .env → Variables de entorno
+  • app/__init__.py → Inicialización de la aplicación
+  • app/routes.py → Todas las rutas/endpoints
+  • app/models.py → Modelos de base de datos
+  • database/schema.sql → Script SQL para crear tablas
+
+✨ SIGUIENTES PASOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Inicia XAMPP (Control Panel)
+  2. Espera a que MySQL inicie en puerto 3307
+  3. Accede a http://localhost:5000
+  4. Usa credenciales: admin / admin123
+  5. ¡Disfruta el sistema de gestión de cumplimiento!
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              La aplicación está lista para su uso. ¡Bienvenido!              ║
+╚══════════════════════════════════════════════════════════════════════════════╝

@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Hallazgos - Auditoría #{{ audit.id }} - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
+<style>
+    .audit-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .finding-card {
+        border-left: 4px solid;
+        margin-bottom: 15px;
+        transition: transform 0.2s;
+    }
+    
+    .finding-card:hover {
+        transform: translateX(5px);
+    }
+    
+    .finding-card.critica {
+        border-left-color: #dc3545;
+        background: #fff5f5;
+    }
+    
+    .finding-card.mayor {
+        border-left-color: #ffc107;
+        background: #fffef5;
+    }
+    
+    .finding-card.menor {
+        border-left-color: #17a2b8;
+        background: #f5fcff;
+    }
+    
+    .severity-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    
+    .severity-critica {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .severity-mayor {
+        background: #ffc107;
+        color: #000;
+    }
+    
+    .severity-menor {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+    }
+    
+    .summary-box {
+        text-align: center;
+        padding: 20px;
+        border-radius: 10px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .summary-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header de la Auditoría -->
+<div class="audit-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="mb-2">
+                <i class="fas fa-clipboard-check"></i> 
+                Auditoría #{{ audit.id }}
+            </h1>
+            <h3>{{ audit.evaluated_area }}</h3>
+            <div class="mt-3">
+                <span class="badge bg-light text-dark me-2">
+                    <i class="fas fa-tag"></i> {{ audit.audit_type.upper() }}
+                </span>
+                <span class="badge bg-light text-dark me-2">
+                    <i class="fas fa-calendar"></i> {{ audit.scheduled_date.strftime('%d/%m/%Y') }}
+                </span>
+                <span class="badge {% if audit.status == 'completada' %}bg-success{% elif audit.status == 'en_proceso' %}bg-warning{% else %}bg-info{% endif %}">
+                    {{ audit.status.upper() }}
+                </span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('audits.new_finding', audit_id=audit.id) }}" class="btn btn-danger btn-lg">
+                <i class="fas fa-plus"></i> Nuevo Hallazgo
+            </a>
+            <a href="{{ url_for('audits.edit_audit', audit_id=audit.id) }}" class="btn btn-warning btn-lg">
+                <i class="fas fa-edit"></i> Editar Auditoría
+            </a>
+            <a href="{{ url_for('audits.list_audits') }}" class="btn btn-light btn-lg">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen de Hallazgos -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="summary-box">
+            <i class="fas fa-exclamation-triangle fa-2x text-secondary"></i>
+            <div class="summary-number">{{ findings.count() }}</div>
+            <small class="text-muted">Total Hallazgos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="summary-box">
+            <i class="fas fa-skull-crossbones fa-2x text-danger"></i>
+            <div class="summary-number text-danger">{{ findings.filter_by(severity='critica').count() }}</div>
+            <small class="text-muted">Críticos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="summary-box">
+            <i class="fas fa-exclamation-circle fa-2x text-warning"></i>
+            <div class="summary-number text-warning">{{ findings.filter_by(severity='mayor').count() }}</div>
+            <small class="text-muted">Mayores</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="summary-box">
+            <i class="fas fa-info-circle fa-2x text-info"></i>
+            <div class="summary-number text-info">{{ findings.filter_by(severity='menor').count() }}</div>
+            <small class="text-muted">Menores</small>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Severidad</label>
+                <select class="form-select" name="severity">
+                    <option value="">Todas</option>
+                    <option value="critica" {% if request.args.get('severity') == 'critica' %}selected{% endif %}>Crítica</option>
+                    <option value="mayor" {% if request.args.get('severity') == 'mayor' %}selected{% endif %}>Mayor</option>
+                    <option value="menor" {% if request.args.get('severity') == 'menor' %}selected{% endif %}>Menor</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Estado</label>
+                <select class="form-select" name="status">
+                    <option value="">Todos</option>
+                    <option value="abierto" {% if request.args.get('status') == 'abierto' %}selected{% endif %}>Abierto</option>
+                    <option value="en_proceso" {% if request.args.get('status') == 'en_proceso' %}selected{% endif %}>En Proceso</option>
+                    <option value="cerrado" {% if request.args.get('status') == 'cerrado' %}selected{% endif %}>Cerrado</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Hallazgos -->
+{% if findings.count() > 0 %}
+    {% for finding in findings %}
+    <div class="card finding-card {{ finding.severity }}">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-2">
+                        <h5 class="mb-0 me-2">Hallazgo #{{ finding.id }}</h5>
+                        <span class="severity-badge severity-{{ finding.severity }}">
+                            {{ finding.severity.upper() }}
+                        </span>
+                        <span class="status-badge ms-2 {% if finding.status == 'cerrado' %}bg-success text-white{% elif finding.status == 'en_proceso' %}bg-warning{% else %}bg-danger text-white{% endif %}">
+                            {{ finding.status.upper() }}
+                        </span>
+                    </div>
+                    
+                    <p class="mb-2">{{ finding.description[:200] }}{% if finding.description|length > 200 %}...{% endif %}</p>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <small class="text-muted"><i class="fas fa-user"></i> Responsable:</small><br>
+                            <strong>{{ finding.responsible or 'No asignado' }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted"><i class="fas fa-calendar-alt"></i> Fecha límite:</small><br>
+                            <strong>
+                                {% if finding.deadline %}
+                                    {{ finding.deadline.strftime('%d/%m/%Y') }}
+                                    {% set days_remaining = (finding.deadline - now).days %}
+                                    {% if days_remaining < 0 %}
+                                        <span class="badge bg-danger">Vencido</span>
+                                    {% elif days_remaining <= 7 %}
+                                        <span class="badge bg-warning text-dark">{{ days_remaining }} días</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Sin definir</span>
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 text-end">
+                    <div class="mb-2">
+                        <small class="text-muted">Registrado:</small><br>
+                        <small>{{ finding.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('audits.edit_finding', audit_id=audit.id, finding_id=finding.id) }}" 
+                           class="btn btn-sm btn-warning" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button class="btn btn-sm btn-danger btn-delete" 
+                                data-finding-id="{{ finding.id }}"
+                                data-finding-desc="{{ finding.description[:50] }}..."
+                                title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            {% if finding.corrective_action %}
+            <div class="mt-3 pt-3 border-top">
+                <small class="text-muted"><i class="fas fa-tools"></i> Acción Correctiva:</small><br>
+                <p class="mb-0">{{ finding.corrective_action }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle fa-3x mb-3"></i>
+        <h4>No hay hallazgos registrados</h4>
+        <p>Esta auditoría aún no tiene hallazgos. Puede agregar uno haciendo clic en el botón "Nuevo Hallazgo".</p>
+        <a href="{{ url_for('audits.new_finding', audit_id=audit.id) }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Agregar Primer Hallazgo
+        </a>
+    </div>
+{% endif %}
+
+<!-- Modal único de eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Eliminar Hallazgo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar este hallazgo?</p>
+                <p class="text-muted" id="findingDescription"></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i> Esta acción no se puede deshacer.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Manejar click en botón eliminar
+        $('.btn-delete').on('click', function() {
+            const findingId = $(this).data('finding-id');
+            const findingDesc = $(this).data('finding-desc');
+            
+            // Actualizar el contenido del modal
+            $('#findingDescription').text(findingDesc);
+            
+            // Actualizar la acción del formulario
+            const deleteUrl = "{{ url_for('audits.delete_finding', audit_id=audit.id, finding_id=0) }}".replace('0', findingId);
+            $('#deleteForm').attr('action', deleteUrl);
+            
+            // Mostrar el modal
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        });
+        
+        // Limpiar el modal al cerrarse
+        $('#deleteModal').on('hidden.bs.modal', function () {
+            $('#findingDescription').text('');
+            $('#deleteForm').attr('action', '');
+        });
+    });
+</script>
+{% endblock %}

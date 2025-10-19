@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Hallazgo - Auditoría #{{ audit.id }} - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .audit-context {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section h5 {
+        color: #2c5282;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #4299e1;
+        padding-bottom: 10px;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #e53e3e;
+    }
+    
+    .severity-example {
+        font-size: 0.85rem;
+        padding: 8px;
+        border-left: 4px solid;
+        margin-top: 5px;
+    }
+    
+    .severity-critica {
+        background: #fee;
+        border-color: #dc3545;
+        color: #721c24;
+    }
+    
+    .severity-mayor {
+        background: #fff3cd;
+        border-color: #ffc107;
+        color: #856404;
+    }
+    
+    .severity-menor {
+        background: #d1ecf1;
+        border-color: #17a2b8;
+        color: #0c5460;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Contexto de la Auditoría -->
+<div class="audit-context">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0">
+                <i class="fas fa-clipboard-check"></i> 
+                Auditoría #{{ audit.id }} - {{ audit.evaluated_area }}
+            </h5>
+            <small>
+                {{ audit.audit_type.upper() }} | 
+                Programada: {{ audit.scheduled_date.strftime('%d/%m/%Y') }}
+                {% if audit.executed_date %}| Ejecutada: {{ audit.executed_date.strftime('%d/%m/%Y') }}{% endif %}
+            </small>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark">
+                <i class="fas fa-exclamation-triangle"></i> 
+                {{ audit.findings.count() }} Hallazgos
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="page-header mb-4">
+    <div>
+        <h1><i class="fas fa-exclamation-circle"></i> Nuevo Hallazgo</h1>
+        <p class="text-muted">Registrar un hallazgo encontrado durante la auditoría</p>
+    </div>
+    <div>
+        <a href="{{ url_for('audits.view_audit', audit_id=audit.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Auditoría
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('audits.new_finding', audit_id=audit.id) }}" id="findingForm">
+                    
+                    <!-- Sección: Descripción del Hallazgo -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-file-alt"></i> Descripción del Hallazgo</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="description" class="form-label required-field">Descripción Detallada</label>
+                                <textarea class="form-control" id="description" name="description" rows="4" required
+                                          placeholder="Describa detalladamente el hallazgo encontrado..."></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-lightbulb"></i> Incluya: qué se encontró, dónde, cuándo y evidencias
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Clasificación -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Clasificación del Hallazgo</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="severity" class="form-label required-field">Severidad</label>
+                                <select class="form-select" id="severity" name="severity" required>
+                                    <option value="">Seleccione la severidad...</option>
+                                    <option value="critica">CRÍTICA - Riesgo alto, requiere acción inmediata</option>
+                                    <option value="mayor">MAYOR - Riesgo medio, requiere plan de acción</option>
+                                    <option value="menor">MENOR - Riesgo bajo, mejora recomendada</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Ejemplos de Severidad -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="severity-example severity-critica">
+                                    <strong>CRÍTICA:</strong><br>
+                                    Incumplimiento de normativa legal, riesgo de contaminación, fallas de seguridad
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="severity-example severity-mayor">
+                                    <strong>MAYOR:</strong><br>
+                                    Procedimientos incompletos, capacitación insuficiente, documentación faltante
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="severity-example severity-menor">
+                                    <strong>MENOR:</strong><br>
+                                    Oportunidades de mejora, registros incompletos, orden y limpieza
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Acción Correctiva -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-tools"></i> Acción Correctiva</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="corrective_action" class="form-label">Plan de Acción Correctiva</label>
+                                <textarea class="form-control" id="corrective_action" name="corrective_action" rows="4"
+                                          placeholder="Describa las acciones que se tomarán para corregir el hallazgo..."></textarea>
+                                <div class="form-text">Opcional: Puede agregarse después</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="responsible" class="form-label">Responsable de la Corrección</label>
+                                <input type="text" class="form-control" id="responsible" name="responsible"
+                                       placeholder="Nombre completo del responsable">
+                                <div class="form-text">Persona encargada de implementar la acción correctiva</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="deadline" class="form-label">Fecha Límite</label>
+                                <input type="date" class="form-control" id="deadline" name="deadline">
+                                <div class="form-text">Plazo para completar la acción correctiva</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Estado y Notas -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-info-circle"></i> Estado y Notas Adicionales</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label required-field">Estado del Hallazgo</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="abierto" selected>Abierto - Pendiente de corrección</option>
+                                    <option value="en_proceso">En Proceso - Acción en ejecución</option>
+                                    <option value="cerrado">Cerrado - Hallazgo corregido</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label for="notes" class="form-label">Notas Adicionales</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3"
+                                          placeholder="Observaciones, comentarios adicionales, referencias..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('audits.view_audit', audit_id=audit.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                        <button type="reset" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo"></i> Limpiar
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-save"></i> Registrar Hallazgo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Establecer fecha límite mínima como mañana
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        $('#deadline').attr('min', tomorrow.toISOString().split('T')[0]);
+        
+        // Sugerencia automática de fecha límite según severidad
+        $('#severity').on('change', function() {
+            const severity = $(this).val();
+            const today = new Date();
+            let suggestedDays = 0;
+            
+            switch(severity) {
+                case 'critica':
+                    suggestedDays = 7; // 1 semana
+                    break;
+                case 'mayor':
+                    suggestedDays = 30; // 1 mes
+                    break;
+                case 'menor':
+                    suggestedDays = 60; // 2 meses
+                    break;
+            }
+            
+            if (suggestedDays > 0 && !$('#deadline').val()) {
+                const deadline = new Date(today);
+                deadline.setDate(deadline.getDate() + suggestedDays);
+                $('#deadline').val(deadline.toISOString().split('T')[0]);
+            }
+        });
+        
+        // Validación del formulario
+        $('#findingForm').on('submit', function(e) {
+            const description = $('#description').val().trim();
+            
+            if (description.length < 20) {
+                e.preventDefault();
+                alert('La descripción del hallazgo debe tener al menos 20 caracteres');
+                $('#description').focus();
+                return false;
+            }
+        });
+        
+        // Contador de caracteres
+        $('#description').on('input', function() {
+            const length = $(this).val().length;
+            const minLength = 20;
+            
+            if (length > 0 && length < minLength) {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+            } else if (length >= minLength) {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            }
+        });
+    });
+</script>
+{% endblock %}

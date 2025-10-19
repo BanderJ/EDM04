@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Política - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section h5 {
+        color: #2c5282;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #4299e1;
+        padding-bottom: 10px;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #e53e3e;
+    }
+    
+    .policy-metadata {
+        background: #edf2f7;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .stats-box {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+    }
+    
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #2d3748;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> Editar Política</h1>
+        <p class="text-muted">{{ policy.title }}</p>
+    </div>
+    <div>
+        <a href="{{ url_for('policies.view_policy', policy_id=policy.id) }}" class="btn btn-info">
+            <i class="fas fa-eye"></i> Ver Detalles
+        </a>
+        <a href="{{ url_for('policies.list_policies') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <!-- Metadata de la política -->
+        <div class="policy-metadata">
+            <div class="row">
+                <div class="col-md-3">
+                    <small class="text-muted">Creada el:</small><br>
+                    <strong>{{ policy.created_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">Última actualización:</small><br>
+                    <strong>{{ policy.updated_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">Versión actual:</small><br>
+                    <strong>{{ policy.version }}</strong>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">Estado:</small><br>
+                    <span class="badge {% if policy.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ 'ACTIVA' if policy.is_active else 'INACTIVA' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estadísticas de confirmaciones -->
+        {% if policy.requires_confirmation %}
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stats-box">
+                    <div class="stats-number text-success">{{ confirmations_count }}</div>
+                    <small class="text-muted">Confirmaciones</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-box">
+                    <div class="stats-number text-warning">{{ pending_count }}</div>
+                    <small class="text-muted">Pendientes</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-box">
+                    <div class="stats-number text-info">{{ (confirmations_count / (confirmations_count + pending_count) * 100) | round(1) if (confirmations_count + pending_count) > 0 else 0 }}%</div>
+                    <small class="text-muted">% Confirmado</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('policies.edit_policy', policy_id=policy.id) }}" id="policyForm">
+                    
+                    <!-- Sección: Información Básica -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-info-circle"></i> Información Básica</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="title" class="form-label required-field">Título de la Política</label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       value="{{ policy.title }}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="description" class="form-label required-field">Descripción Breve</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" required>{{ policy.description }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Contenido -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-align-left"></i> Contenido de la Política</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="content" class="form-label">Contenido Completo</label>
+                                <textarea class="form-control" id="content" name="content" rows="12">{{ policy.content or '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Versión y Vigencia -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-code-branch"></i> Versión y Vigencia</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="version" class="form-label">Versión</label>
+                                <input type="text" class="form-control" id="version" name="version" 
+                                       value="{{ policy.version }}">
+                                <div class="form-text">
+                                    <i class="fas fa-lightbulb"></i> Incrementar versión si hay cambios importantes
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="effective_date" class="form-label required-field">Fecha de Vigencia</label>
+                                <input type="date" class="form-control" id="effective_date" name="effective_date" 
+                                       value="{{ policy.effective_date.strftime('%Y-%m-%d') }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Configuración -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-cog"></i> Configuración</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="requires_confirmation" 
+                                           name="requires_confirmation" value="true" 
+                                           {% if policy.requires_confirmation %}checked{% endif %}>
+                                    <label class="form-check-label" for="requires_confirmation">
+                                        <strong>Requiere Confirmación de Usuarios</strong>
+                                    </label>
+                                    <div class="form-text">Los usuarios deberán aceptar esta política</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="is_active" 
+                                           name="is_active" value="true" 
+                                           {% if policy.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        <strong>Política Activa</strong>
+                                    </label>
+                                    <div class="form-text">Desmarcar para ocultar la política</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="fas fa-trash"></i> Eliminar Política
+                        </button>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('policies.list_policies') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar esta política?</p>
+                {% if policy.requires_confirmation %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i> Se eliminarán también <strong>{{ confirmations_count }} confirmación(es)</strong> de usuarios.
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('policies.delete_policy', policy_id=policy.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Advertencia al cambiar versión
+        const originalVersion = '{{ policy.version }}';
+        $('#version').on('change', function() {
+            if ($(this).val() !== originalVersion) {
+                if (!confirm('Al cambiar la versión, se recomienda actualizar la fecha de vigencia. ¿Desea continuar?')) {
+                    $(this).val(originalVersion);
+                }
+            }
+        });
+        
+        // Validación del formulario
+        $('#policyForm').on('submit', function(e) {
+            const title = $('#title').val().trim();
+            if (title.length < 5) {
+                e.preventDefault();
+                alert('El título debe tener al menos 5 caracteres');
+                return false;
+            }
+        });
+    });
+</script>
+{% endblock %}

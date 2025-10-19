@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}{{ policy.title }} - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .policy-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .policy-meta {
+        display: flex;
+        gap: 30px;
+        margin-top: 20px;
+    }
+    
+    .policy-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .policy-content {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        line-height: 1.8;
+    }
+    
+    .policy-content h1, .policy-content h2, .policy-content h3 {
+        color: #2d3748;
+        margin-top: 25px;
+        margin-bottom: 15px;
+    }
+    
+    .policy-content ul, .policy-content ol {
+        margin-left: 20px;
+    }
+    
+    .confirmations-section {
+        background: #f7fafc;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .confirmation-item {
+        padding: 10px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .confirmation-item:last-child {
+        border-bottom: none;
+    }
+    
+    .badge-version {
+        background: #fbbf24;
+        color: #78350f;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    
+    .btn-confirm-policy {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        padding: 15px 30px;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header de la política -->
+<div class="policy-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="mb-3">
+                <i class="fas fa-file-contract"></i> {{ policy.title }}
+            </h1>
+            <div class="policy-meta">
+                <div class="policy-meta-item">
+                    <span class="badge-version">v{{ policy.version }}</span>
+                </div>
+                <div class="policy-meta-item">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Vigente desde: {{ policy.effective_date.strftime('%d/%m/%Y') }}</span>
+                </div>
+                <div class="policy-meta-item">
+                    <i class="fas fa-{{ 'check-circle' if policy.is_active else 'times-circle' }}"></i>
+                    <span>{{ 'Activa' if policy.is_active else 'Inactiva' }}</span>
+                </div>
+            </div>
+        </div>
+        
+        {% if current_user.role == 'administrador' %}
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('policies.edit_policy', policy_id=policy.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            <a href="{{ url_for('policies.list_policies') }}" class="btn btn-light">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Contenido Principal -->
+    <div class="col-md-8">
+        <!-- Descripción -->
+        <div class="policy-content">
+            <h3><i class="fas fa-info-circle"></i> Descripción</h3>
+            <p class="lead">{{ policy.description }}</p>
+        </div>
+        
+        <!-- Contenido Completo -->
+        {% if policy.content %}
+        <div class="policy-content">
+            <h3><i class="fas fa-file-alt"></i> Contenido Completo</h3>
+            <div class="policy-text">
+                {{ policy.content|safe|nl2br }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Información de la Política -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info"></i> Información</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">Fecha de Creación</small><br>
+                    <strong>{{ policy.created_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Última Actualización</small><br>
+                    <strong>{{ policy.updated_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Versión</small><br>
+                    <strong>{{ policy.version }}</strong>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Requiere Confirmación</small><br>
+                    <span class="badge {% if policy.requires_confirmation %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ 'SÍ' if policy.requires_confirmation else 'NO' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estadísticas de Confirmación -->
+        {% if policy.requires_confirmation %}
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Estadísticas</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">Usuarios que Confirmaron</small><br>
+                    <h3 class="text-success">{{ confirmed_count }}</h3>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Usuarios Pendientes</small><br>
+                    <h3 class="text-warning">{{ pending_count }}</h3>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">Porcentaje de Cumplimiento</small><br>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ (confirmed_count / (confirmed_count + pending_count) * 100) if (confirmed_count + pending_count) > 0 else 0 }}%">
+                            {{ (confirmed_count / (confirmed_count + pending_count) * 100)|round(1) if (confirmed_count + pending_count) > 0 else 0 }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista de Confirmaciones Recientes -->
+        {% if current_user.role == 'administrador' and confirmations|length > 0 %}
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-users"></i> Confirmaciones Recientes</h5>
+            </div>
+            <div class="card-body confirmations-section" style="max-height: 400px; overflow-y: auto;">
+                {% for confirmation in confirmations[:10] %}
+                <div class="confirmation-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ confirmation.user.full_name }}</strong><br>
+                            <small class="text-muted">{{ confirmation.confirmed_date.strftime('%d/%m/%Y %H:%M') if confirmation.confirmed_date else 'Pendiente' }}</small>
+                        </div>
+                        <div>
+                            {% if confirmation.confirmed %}
+                                <i class="fas fa-check-circle text-success fa-2x"></i>
+                            {% else %}
+                                <i class="fas fa-clock text-warning fa-2x"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Botón flotante de confirmación (solo si requiere confirmación y el usuario no ha confirmado) -->
+{% if policy.requires_confirmation and not user_confirmed and current_user.role != 'administrador' %}
+<form method="POST" action="{{ url_for('policies.confirm_policy', policy_id=policy.id) }}">
+    <button type="submit" class="btn btn-success btn-confirm-policy">
+        <i class="fas fa-check-circle"></i> Confirmar que he leído esta política
+    </button>
+</form>
+{% elif user_confirmed %}
+<div class="alert alert-success" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000;">
+    <i class="fas fa-check-circle"></i> Ya has confirmado esta política
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Convertir saltos de línea en párrafos
+    $(document).ready(function() {
+        $('.policy-text').each(function() {
+            var text = $(this).html();
+            text = text.replace(/\n\n/g, '</p><p>');
+            text = text.replace(/\n/g, '<br>');
+            $(this).html('<p>' + text + '</p>');
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Políticas de Cumplimiento - Frutos de Oro{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> Políticas de Cumplimiento</h1>
+        <p class="text-muted">Gestión de políticas internas y confirmaciones</p>
+    </div>
+    {% if current_user.role == 'administrador' %}
+    <div>
+        <a href="{{ url_for('policies.new_policy') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nueva Política
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Lista de políticas -->
+<div class="row">
+    {% for policy in policies.items %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ policy.title }}</h5>
+                <p class="text-muted small">Versión {{ policy.version }} - Vigente desde {{ policy.effective_date.strftime('%d/%m/%Y') }}</p>
+                <p class="card-text">{{ policy.description }}</p>
+                
+                <!-- Indicador de confirmación -->
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small><strong>Confirmaciones:</strong></small>
+                        <span class="badge bg-info">{{ policy.get_confirmation_percentage() }}%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ policy.get_confirmation_percentage() }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mt-3 pt-3 border-top">
+                    <a href="{{ url_for('policies.view_policy', policy_id=policy.id) }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-eye"></i> Ver Detalles
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Paginación -->
+{% if policies.pages > 1 %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if policies.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1">Primera</a>
+        </li>
+        {% endif %}
+        
+        {% for page_num in policies.iter_pages() %}
+            {% if page_num %}
+                {% if page_num == policies.page %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                </li>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        
+        {% if policies.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ policies.next_num }}">Siguiente</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,265 @@
+================================================================================
+   GUÍA RÁPIDA: CONFIGURAR TUS CREDENCIALES DE MYSQL
+   Sistema de Gestión de Cumplimiento - Frutos de Oro S.A.C.
+================================================================================
+
+📋 PASOS PARA CONECTAR CON TU BASE DE DATOS LOCAL
+--------------------------------------------------
+
+1️⃣  INSTALAR XAMPP
+   • Descarga XAMPP desde: https://www.apachefriends.org/
+   • Instala y abre el "Panel de Control de XAMPP"
+   • Haz clic en "Start" junto a MySQL
+   • Verifica que diga "Running" (debe mostrar el puerto, ej: 3306 o 3307)
+
+
+2️⃣  CREAR LA BASE DE DATOS
+   • Abre tu navegador y ve a: http://localhost/phpmyadmin
+   • En el panel izquierdo, haz clic en "Nueva"
+   • Nombre de la base de datos: frutos_oro_db
+   • Cotejamiento: utf8mb4_unicode_ci
+   • Haz clic en "Crear"
+   • Luego ve a la pestaña "Importar"
+   • Selecciona el archivo: database/schema.sql
+   • Haz clic en "Continuar"
+   • ✅ Listo! Deberías ver las tablas creadas
+
+
+3️⃣  CONFIGURAR TUS CREDENCIALES (¡MUY IMPORTANTE!)
+   
+   a) Copia el archivo de ejemplo:
+      
+      Windows (CMD o PowerShell):
+      ----------------------------
+      copy .env.example .env
+      
+      Linux/Mac:
+      ----------
+      cp .env.example .env
+   
+   
+   b) Abre el archivo .env con tu editor favorito:
+      
+      • Notepad: notepad .env
+      • Visual Studio Code: code .env
+      • Bloc de notas, Notepad++, etc.
+   
+   
+   c) Edita las siguientes líneas según TU configuración local:
+
+================================================================================
+CONFIGURACIÓN POR DEFECTO DE XAMPP (La mayoría de casos):
+================================================================================
+
+DB_USER=root
+DB_PASSWORD=
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=frutos_oro_db
+
+NOTA: La contraseña (DB_PASSWORD) está VACÍA por defecto en XAMPP
+      Si no le pusiste contraseña a MySQL, déjala en blanco (DB_PASSWORD=)
+
+
+================================================================================
+¿CÓMO SABER QUÉ PUERTO USA MI XAMPP?
+================================================================================
+
+Opción 1: Panel de Control XAMPP
+---------------------------------
+• Abre el "Panel de Control de XAMPP"
+• Busca la línea de MySQL
+• Verás algo como: "Port(s): 3306" o "Port(s): 3307"
+• Usa ese número en DB_PORT
+
+
+Opción 2: Archivo de configuración
+-----------------------------------
+• Abre: C:\xampp\mysql\bin\my.ini (Windows)
+• Busca la línea: port=3306
+• Ese es tu puerto
+
+
+Opción 3: phpMyAdmin
+--------------------
+• Abre: http://localhost/phpmyadmin
+• Si se abre sin problemas, el puerto es 3306
+• Si NO se abre, intenta: http://localhost:8080/phpmyadmin
+
+
+================================================================================
+EJEMPLOS DE CONFIGURACIÓN
+================================================================================
+
+Ejemplo 1: XAMPP con configuración por defecto
+-----------------------------------------------
+DB_USER=root
+DB_PASSWORD=
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=frutos_oro_db
+
+
+Ejemplo 2: XAMPP con puerto 3307
+---------------------------------
+DB_USER=root
+DB_PASSWORD=
+DB_HOST=127.0.0.1
+DB_PORT=3307               ← CAMBIAR AQUÍ
+DB_NAME=frutos_oro_db
+
+
+Ejemplo 3: MySQL con contraseña
+--------------------------------
+DB_USER=root
+DB_PASSWORD=mi_password    ← PONER TU CONTRASEÑA
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=frutos_oro_db
+
+
+Ejemplo 4: MySQL en otro servidor
+----------------------------------
+DB_USER=desarrollador
+DB_PASSWORD=Pass123
+DB_HOST=192.168.1.100      ← IP del servidor
+DB_PORT=3306
+DB_NAME=frutos_oro_db
+
+
+================================================================================
+4️⃣  VERIFICAR LA CONEXIÓN
+================================================================================
+
+Antes de ejecutar la aplicación, verifica que todo esté bien configurado:
+
+   python verificar_conexion.py
+
+Este script te dirá:
+   ✅ Si la conexión es exitosa
+   ✅ Si la base de datos existe
+   ✅ Si las tablas están creadas
+   ✅ Si el usuario admin existe
+   ❌ Qué está mal si hay error
+
+
+================================================================================
+5️⃣  EJECUTAR LA APLICACIÓN
+================================================================================
+
+Una vez que verificar_conexion.py diga que todo está bien:
+
+   python app.py
+
+Luego abre tu navegador en: http://localhost:5000
+
+
+================================================================================
+🔐 CREDENCIALES DE ACCESO
+================================================================================
+
+Usuario: admin
+Contraseña: admin123
+
+Otros usuarios de prueba:
+• jefe_produccion / produccion123
+• jefe_calidad / calidad123
+• auditor_interno / auditor123
+
+
+================================================================================
+❓ SOLUCIÓN DE PROBLEMAS COMUNES
+================================================================================
+
+❌ Error: "Can't connect to MySQL server"
+------------------------------------------
+Solución:
+1. Verifica que MySQL esté ejecutándose en XAMPP (debe decir "Running")
+2. Revisa el puerto en tu archivo .env
+3. Prueba cambiar DB_PORT=3306 por DB_PORT=3307 (o viceversa)
+
+
+❌ Error: "Access denied for user 'root'@'localhost'"
+------------------------------------------------------
+Solución:
+1. Verifica tu contraseña en .env
+2. Si no le pusiste contraseña a MySQL, deja DB_PASSWORD= (vacío)
+3. Si pusiste contraseña, escríbela después del =
+
+
+❌ Error: "Unknown database 'frutos_oro_db'"
+--------------------------------------------
+Solución:
+1. Abre phpMyAdmin: http://localhost/phpmyadmin
+2. Crea la base de datos "frutos_oro_db"
+3. Importa el archivo database/schema.sql
+
+
+❌ La aplicación inicia pero dice "DB_ERROR"
+--------------------------------------------
+Solución:
+1. Ejecuta: python verificar_conexion.py
+2. Sigue las instrucciones que te dé el script
+
+
+❌ "ModuleNotFoundError: No module named 'pymysql'"
+--------------------------------------------------
+Solución:
+1. Activa el entorno virtual: .\.venv\Scripts\activate
+2. Instala dependencias: pip install -r requirements.txt
+
+
+================================================================================
+📌 NOTAS IMPORTANTES
+================================================================================
+
+⚠️  El archivo .env NO se sube a Git (está en .gitignore)
+    Cada persona del equipo debe crear su propio archivo .env
+
+⚠️  Nunca compartas tu archivo .env por WhatsApp, email, etc.
+    Contiene credenciales sensibles
+
+✅  Si cambias algo en .env, debes reiniciar la aplicación (python app.py)
+
+✅  Si tu compañero tiene problemas, pídele que:
+    1. Verifique que XAMPP MySQL esté corriendo
+    2. Ejecute: python verificar_conexion.py
+    3. Te comparta el error que ve en pantalla
+
+
+================================================================================
+🆘 ¿NECESITAS AYUDA?
+================================================================================
+
+Si después de seguir estos pasos aún no puedes conectar:
+
+1. Ejecuta el script de verificación y copia el mensaje de error:
+   python verificar_conexion.py
+
+2. Verifica la configuración de XAMPP:
+   • ¿Está MySQL "Running" en el panel?
+   • ¿Qué puerto muestra?
+   • ¿phpMyAdmin funciona?
+
+3. Comparte esta información con tu equipo o líder del proyecto
+
+
+================================================================================
+📚 MÁS INFORMACIÓN
+================================================================================
+
+Para detalles técnicos sobre cómo funciona la conexión:
+→ Lee: COMO_CONECTA_MYSQL.md
+
+Para instalar todo desde cero:
+→ Lee: README_INSTALACION.md
+
+
+================================================================================
+¡LISTO! 🎉
+================================================================================
+
+Una vez configurado tu archivo .env, la aplicación debería conectar
+automáticamente a tu base de datos local.
+
+Recuerda: Cada miembro del equipo configura su propio .env según su XAMPP local.

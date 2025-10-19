@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Certificaciones - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css">
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .btn-action {
+        margin-right: 5px;
+    }
+    
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .status-vigente {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-proxima_vencer {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-vencida {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-certificate"></i> Certificaciones</h1>
+        <p class="text-muted">Gestión de certificaciones internacionales y nacionales</p>
+    </div>
+    <div>
+        <a href="{{ url_for('certifications.new_certification') }}" class="btn btn-primary btn-action">
+            <i class="fas fa-plus"></i> Nueva Certificación
+        </a>
+        <a href="{{ url_for('reports.certifications_report') }}" class="btn btn-secondary btn-action">
+            <i class="fas fa-file-pdf"></i> Reporte
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="mb-3">
+    <form method="GET" class="row g-3">
+        <div class="col-md-4">
+            <select class="form-select" name="status">
+                <option value="all">Todos los estados</option>
+                <option value="vigente" {% if status_filter == 'vigente' %}selected{% endif %}>Vigentes</option>
+                <option value="proxima_vencer" {% if status_filter == 'proxima_vencer' %}selected{% endif %}>Próximas a Vencer</option>
+                <option value="vencida" {% if status_filter == 'vencida' %}selected{% endif %}>Vencidas</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-outline-secondary w-100">
+                <i class="fas fa-filter"></i> Filtrar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Tabla de certificaciones -->
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover" id="certificationsTable">
+            <thead>
+                <tr>
+                    <th>Certificación</th>
+                    <th>Norma</th>
+                    <th>Entidad Emisora</th>
+                    <th>Vencimiento</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cert in certifications.items %}
+                <tr>
+                    <td>
+                        <strong>{{ cert.name }}</strong>
+                    </td>
+                    <td>{{ cert.norm }}</td>
+                    <td>{{ cert.issuing_entity }}</td>
+                    <td>
+                        <strong>{{ cert.expiration_date.strftime('%d/%m/%Y') }}</strong>
+                        <br>
+                        <small class="text-muted">({{ cert.days_to_expiration() }} días)</small>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ cert.status }}">
+                            {{ cert.status.replace('_', ' ').upper() }}
+                        </span>
+                    </td>
+                    <td>{{ cert.responsible.full_name }}</td>
+                    <td>
+                        <a href="{{ url_for('certifications.edit_certification', cert_id=cert.id) }}" 
+                           class="btn btn-sm btn-warning btn-action" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button class="btn btn-sm btn-danger btn-action btn-delete" 
+                                data-cert-id="{{ cert.id }}"
+                                data-cert-name="{{ cert.name }}"
+                                title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal único de eliminación (fuera de la tabla) -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="fas fa-exclamation-triangle"></i> Eliminar Certificación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar la certificación "<strong id="certName"></strong>"?</p>
+                <div class="alert alert-warning" role="alert">
+                    <i class="fas fa-info-circle"></i> Esta acción no se puede deshacer.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <form id="deleteForm" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Paginación -->
+{% if certifications.pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if certifications.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1">Primera</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ certifications.prev_num }}">Anterior</a>
+            </li>
+        {% endif %}
+        
+        {% for page_num in certifications.iter_pages() %}
+            {% if page_num %}
+                {% if page_num == certifications.page %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                </li>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        
+        {% if certifications.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ certifications.next_num }}">Siguiente</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ certifications.pages }}">Última</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Inicializar DataTable
+        $('#certificationsTable').DataTable({
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
+            },
+            "paging": false,
+            "searching": true,
+            "ordering": true,
+            "order": [[3, 'asc']] // Ordenar por fecha de vencimiento
+        });
+
+        // Manejar click en botón eliminar - ABRIR MODAL DIRECTO
+        $('.btn-delete').on('click', function() {
+            const certId = $(this).data('cert-id');
+            const certName = $(this).data('cert-name');
+            
+            // Actualizar el contenido del modal
+            $('#certName').text(certName);
+            
+            // Actualizar la acción del formulario
+            const deleteUrl = "{{ url_for('certifications.delete_certification', cert_id=0) }}".replace('0', certId);
+            $('#deleteForm').attr('action', deleteUrl);
+            
+            // Mostrar el modal directamente (sin alert previo)
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        });
+
+        // Limpiar el modal al cerrarse
+        $('#deleteModal').on('hidden.bs.modal', function () {
+            $('#certName').text('');
+            $('#deleteForm').attr('action', '');
+        });
+    });
+</script>
+{% endblock %}

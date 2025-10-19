@@ -1,0 +1,71 @@
+# ====================================================================
+# .gitignore para Sistema de Gestión de Cumplimiento - Frutos de Oro
+# ====================================================================
+
+# Archivos de configuración local (IMPORTANTE: No compartir credenciales)
+.env
+config_local.py
+
+# Cache de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Entornos virtuales
+.venv/
+venv/
+ENV/
+env/
+
+# Archivos de base de datos local
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos subidos por usuarios (certificaciones, documentos)
+uploads/
+!uploads/.gitkeep
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Reportes generados
+reportes/
+*.pdf
+*.xlsx
+!database/schema.sql
+
+# Variables de entorno
+.env.local
+.env.development
+.env.production
+
+# Archivos temporales de Windows
+Thumbs.db
+desktop.ini
+
+# Archivos de backup
+*.bak
+*.backup
+*.tmp
+
+# Certificados y claves privadas
+*.pem
+*.key
+*.crt
+certificates/
+
+# Documentación generada
+docs/_build/
+site/

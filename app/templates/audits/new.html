@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Auditoría - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section h5 {
+        color: #2c5282;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #4299e1;
+        padding-bottom: 10px;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #e53e3e;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <h1><i class="fas fa-clipboard-check"></i> Nueva Auditoría</h1>
+        <p class="text-muted">Programar una nueva auditoría interna o externa</p>
+    </div>
+    <div>
+        <a href="{{ url_for('audits.list_audits') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('audits.new_audit') }}" id="auditForm">
+                    
+                    <!-- Sección: Información General -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-info-circle"></i> Información General</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="audit_type" class="form-label required-field">Tipo de Auditoría</label>
+                                <select class="form-select" id="audit_type" name="audit_type" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="interna">Interna</option>
+                                    <option value="externa">Externa</option>
+                                </select>
+                                <div class="form-text">Auditoría interna o realizada por entidad externa</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label required-field">Estado</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="programada" selected>Programada</option>
+                                    <option value="en_proceso">En Proceso</option>
+                                    <option value="completada">Completada</option>
+                                    <option value="cancelada">Cancelada</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="evaluated_area" class="form-label required-field">Área a Evaluar</label>
+                                <input type="text" class="form-control" id="evaluated_area" name="evaluated_area" 
+                                       placeholder="Ej: Producción, Almacenamiento, Laboratorio de Calidad..." required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Fechas -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-calendar"></i> Programación</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="scheduled_date" class="form-label required-field">Fecha Programada</label>
+                                <input type="date" class="form-control" id="scheduled_date" name="scheduled_date" required>
+                                <div class="form-text">Fecha en que se realizará la auditoría</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="executed_date" class="form-label">Fecha de Ejecución</label>
+                                <input type="date" class="form-control" id="executed_date" name="executed_date">
+                                <div class="form-text">Dejar vacío si aún no se ha ejecutado</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Responsable -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-user"></i> Responsable</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="responsible_id" class="form-label required-field">Auditor Responsable</label>
+                                <select class="form-select" id="responsible_id" name="responsible_id" required>
+                                    <option value="">Seleccione un auditor...</option>
+                                    {% for user in users %}
+                                        <option value="{{ user.id }}">
+                                            {{ user.full_name }} - {{ user.department }} ({{ user.role }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Descripción -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-align-left"></i> Descripción</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="description" class="form-label">Descripción de la Auditoría</label>
+                                <textarea class="form-control" id="description" name="description" rows="5"
+                                          placeholder="Objetivos, alcance, metodología a utilizar..."></textarea>
+                                <div class="form-text">Opcional: Detalles adicionales sobre la auditoría</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('audits.list_audits') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                        <button type="reset" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo"></i> Limpiar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar Auditoría
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Establecer fecha mínima como hoy
+        const today = new Date().toISOString().split('T')[0];
+        $('#scheduled_date').attr('min', today);
+        
+        // Validación del formulario
+        $('#auditForm').on('submit', function(e) {
+            const scheduledDate = new Date($('#scheduled_date').val());
+            const executedDate = $('#executed_date').val();
+            
+            if (executedDate) {
+                const executed = new Date(executedDate);
+                if (executed < scheduledDate) {
+                    e.preventDefault();
+                    alert('La fecha de ejecución no puede ser anterior a la fecha programada');
+                    return false;
+                }
+            }
+        });
+        
+        // Actualizar estado automáticamente según fecha de ejecución
+        $('#executed_date').on('change', function() {
+            if ($(this).val()) {
+                $('#status').val('completada');
+            } else {
+                $('#status').val('programada');
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Error 500 - Error interno del servidor{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="display-1 text-danger fw-bold">500</h1>
+            <h2 class="h3 mb-3">Error interno del servidor</h2>
+            <p class="text-muted mb-4">Algo salió mal en nuestro servidor. Por favor intenta más tarde.</p>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <a href="/" class="btn btn-primary btn-lg px-4 gap-3">Ir al Dashboard</a>
+                <a href="javascript:history.back()" class="btn btn-secondary btn-lg px-4">Volver atrás</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
