@@ -163,9 +163,9 @@ VALUES ('admin', 'admin@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$a
 -- auditor_interno: auditor123
 INSERT INTO `users` (`username`, `email`, `password_hash`, `full_name`, `department`, `role`, `is_active`) 
 VALUES 
-  ('jefe_produccion', 'jefe.produccion@frutosoro.com', 'pbkdf2:sha256:600000$3wKwO7wtguVPiwHk$f3e5e1a70260090b59421789a5ad02d888029c73663533e6ab2b4b101ba74f65', 'Juan Pérez García', 'Producción', 'jefe_unidad', TRUE),
-  ('jefe_calidad', 'jefe.calidad@frutosoro.com', 'pbkdf2:sha256:600000$an7ZHl98zO0ymHcT$5855fdf3983cbc05f0e04e20d3c16570d9008456aeac3fa8b70beda2ff95678f', 'María Rodríguez López', 'Calidad', 'jefe_unidad', TRUE),
-  ('auditor_interno', 'auditor.interno@frutosoro.com', 'pbkdf2:sha256:600000$XdwDpwRuPBdgFKOj$9c8c00a0c2bd35dab3ea76715dc92340db083a00de7792fc042e666bd8c61ce4', 'Carlos González Martínez', 'Auditoría', 'auditor', TRUE);
+  ('jefe_produccion', 'jefe.produccion@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'Juan Pérez García', 'Producción', 'jefe_unidad', TRUE),
+  ('jefe_calidad', 'jefe.calidad@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'María Rodríguez López', 'Calidad', 'jefe_unidad', TRUE),
+  ('auditor_interno', 'auditor.interno@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'Carlos González Martínez', 'Auditoría', 'auditor', TRUE);
 
 -- Insertar certificaciones de ejemplo
 INSERT INTO `certifications` (`name`, `norm`, `issuing_entity`, `emission_date`, `expiration_date`, `responsible_id`, `status`, `notes`)
