@@ -5,7 +5,31 @@ Plataforma web administrativa para gestionar, registrar y monitorear el cumplimi
 
 ---
 
-## � **NUEVO EN EL PROYECTO? LEE ESTO PRIMERO**
+## 🚀 **DEPLOY EN VERCEL (PRODUCCIÓN)**
+
+### 🌐 Subir a Vercel desde la Web (Recomendado)
+
+| 📌 **Deploy Web** | Archivo | Descripción |
+|------------------|---------|-------------|
+| **RECOMENDADO** | **`DEPLOY_WEB_VERCEL.md`** | 👉 **Deploy desde vercel.com sin CLI** |
+| Índice | `INDICE_DEPLOY_VERCEL.md` | Guía de todas las opciones disponibles |
+
+**Ventajas del deploy desde la web**:
+- ✅ No necesitas instalar nada
+- ✅ Interface visual fácil
+- ✅ Obtienes dominio: `edm04.vercel.app`
+- ✅ Deploy automático en cada push a GitHub
+
+### 📋 Otras opciones de deploy:
+
+| Método | Archivo | Para quién |
+|--------|---------|------------|
+| CLI Rápido | `DEPLOY_RAPIDO.md` | Usuarios que prefieren terminal |
+| Completo | `DEPLOY_VERCEL.md` | Guía detallada con todas las opciones |
+
+---
+
+## 🏠 **DESARROLLO LOCAL? LEE ESTO PRIMERO**
 
 ### 📝 Guías de Inicio Rápido
 

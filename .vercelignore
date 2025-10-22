@@ -1,0 +1,54 @@
+# Archivos y carpetas a ignorar en el deploy de Vercel
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Base de datos local (SQLite)
+*.db
+*.sqlite
+*.sqlite3
+
+# Variables de entorno (usar Vercel Environment Variables)
+.env
+.env.local
+
+# Archivos de desarrollo
+*.log
+test_*.py
+verificar_*.py
+iniciar*.py
+iniciar*.bat
+instalar.bat
+
+# Documentación local
+LEEME_PRIMERO.txt
+BIENVENIDA.txt
+CONFIGURACION_30_SEGUNDOS.txt
+CONFIGURAR_MYSQL.txt
+INICIO_RAPIDO.txt
+INDICE_DOCUMENTACION.txt
+COMO_CONECTA_MYSQL.md
+
+# Git
+.git/
+.gitignore
+
+# Uploads (usar servicio de storage externo)
+uploads/
+
+# Database schema (ejecutar manualmente en producción)
+database/
+
+# Cache
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json

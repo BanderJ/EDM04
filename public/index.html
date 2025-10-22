@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0; url=/auth/login">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirigiendo...</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1a472a 0%, #2d8659 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #ffd700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍓 Frutos de Oro</h1>
+        <div class="loader"></div>
+        <p>Redirigiendo al sistema...</p>
+        <p><small>Si no se redirige automáticamente, <a href="/auth/login" style="color: #ffd700;">haz clic aquí</a></small></p>
+    </div>
+    <script>
+        // Redirigir inmediatamente
+        window.location.href = '/auth/login';
+    </script>
+</body>
+</html>

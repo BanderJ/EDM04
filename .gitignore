@@ -69,3 +69,6 @@ certificates/
 # Documentación generada
 docs/_build/
 site/
+
+# Vercel
+.vercel

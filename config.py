@@ -69,10 +69,44 @@ class DevelopmentConfig(Config):
     SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
 class ProductionConfig(Config):
-    """Configuración de producción"""
+    """Configuración de producción - Vercel + MySQL en la nube
+    
+    Variables de entorno requeridas en Vercel:
+    • DB_USER     → Usuario MySQL en la nube
+    • DB_PASSWORD → Password MySQL en la nube
+    • DB_HOST     → Host MySQL (ej: xxx.connect.psdb.cloud)
+    • DB_PORT     → Puerto MySQL (default: 3306)
+    • DB_NAME     → Nombre de la base de datos
+    • SECRET_KEY  → Clave secreta (32+ caracteres)
+    """
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'postgresql://user:password@localhost/frutos_oro_db'
+    
+    # Configuración de sesión más estricta en producción
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    
+    # Lee credenciales desde variables de entorno de Vercel
+    DB_USER = os.environ.get('DB_USER')
+    DB_PASSWORD = os.environ.get('DB_PASSWORD')
+    DB_HOST = os.environ.get('DB_HOST')
+    DB_PORT = os.environ.get('DB_PORT', '3306')
+    DB_NAME = os.environ.get('DB_NAME')
+    
+    # Construir URI de conexión para MySQL en la nube
+    if all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME]):
+        SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
+    else:
+        # Fallback si faltan variables
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', '')
+    
+    # Pool de conexiones optimizado para serverless
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 5,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True,
+        'max_overflow': 2
+    }
 
 class TestingConfig(Config):
     """Configuración de pruebas"""
