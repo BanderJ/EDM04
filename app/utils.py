@@ -390,3 +390,68 @@ def create_alert(alert_type, related_id, title, message, severity='info', recipi
     db.session.commit()
     
     return alert
+
+# ============ SISTEMA DE AUDIT LOG ============
+
+def log_action(user_id, action, entity_type=None, entity_id=None, changes=None, ip_address=None):
+    """
+    Registra una acción en el sistema de auditoría
+    
+    Args:
+        user_id: ID del usuario que realiza la acción
+        action: Acción realizada (create, update, delete, view, etc.)
+        entity_type: Tipo de entidad (policy, audit, certification, user, etc.)
+        entity_id: ID de la entidad afectada
+        changes: Diccionario con los cambios realizados (opcional)
+        ip_address: Dirección IP del usuario
+    """
+    from app.models import AuditLog
+    from app import db
+    import json
+    
+    log_entry = AuditLog(
+        user_id=user_id,
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        changes=json.dumps(changes, ensure_ascii=False) if changes else None,
+        ip_address=ip_address
+    )
+    
+    db.session.add(log_entry)
+    db.session.commit()
+    
+    return log_entry
+
+def get_entity_changes(old_obj, new_data, fields):
+    """
+    Compara un objeto con nuevos datos y retorna los cambios
+    
+    Args:
+        old_obj: Objeto original (modelo SQLAlchemy)
+        new_data: Diccionario con nuevos valores
+        fields: Lista de campos a comparar
+    
+    Returns:
+        Diccionario con cambios en formato {campo: {'old': valor_antiguo, 'new': valor_nuevo}}
+    """
+    changes = {}
+    
+    for field in fields:
+        old_value = getattr(old_obj, field, None)
+        new_value = new_data.get(field)
+        
+        # Convertir datetime a string para comparación
+        if hasattr(old_value, 'strftime'):
+            old_value = old_value.strftime('%Y-%m-%d %H:%M:%S')
+        if hasattr(new_value, 'strftime'):
+            new_value = new_value.strftime('%Y-%m-%d %H:%M:%S')
+        
+        if str(old_value) != str(new_value) and new_value is not None:
+            changes[field] = {
+                'old': str(old_value) if old_value else None,
+                'new': str(new_value)
+            }
+    
+    return changes if changes else None
+

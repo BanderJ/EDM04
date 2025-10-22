@@ -235,5 +235,8 @@ class AuditLog(db.Model):
     ip_address = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.now, index=True)
     
+    # Relación con usuario
+    user = db.relationship('User', backref='audit_logs', foreign_keys=[user_id])
+    
     def __repr__(self):
         return f'<AuditLog {self.action} {self.entity_type}:{self.entity_id}>'

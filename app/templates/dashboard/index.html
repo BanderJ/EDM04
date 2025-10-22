@@ -65,6 +65,23 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
+    .chart-container h5 {
+        color: #1a472a;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    
+    /* Contenedor específico para gráficos con altura limitada */
+    .chart-wrapper {
+        position: relative;
+        height: 250px;
+        margin: 20px 0;
+    }
+    
+    .chart-wrapper canvas {
+        max-height: 250px !important;
+    }
+    
     .progress-bar-animated {
         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
     }
@@ -141,14 +158,18 @@
     <div class="col-md-6">
         <div class="chart-container">
             <h5>Estado de Certificaciones</h5>
-            <canvas id="certChart"></canvas>
+            <div class="chart-wrapper">
+                <canvas id="certChart"></canvas>
+            </div>
         </div>
     </div>
     
     <div class="col-md-6">
         <div class="chart-container">
             <h5>Auditorías</h5>
-            <canvas id="auditChart"></canvas>
+            <div class="chart-wrapper">
+                <canvas id="auditChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -280,9 +301,16 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 11
+                        }
+                    }
                 }
             }
         }
@@ -303,9 +331,16 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 11
+                        }
+                    }
                 }
             }
         }

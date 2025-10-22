@@ -5,15 +5,35 @@
 {% block extra_css %}
 <style>
     .policy-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1a472a 0%, #2d7a4d 100%);
         color: white;
         padding: 40px;
         border-radius: 10px;
         margin-bottom: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .page-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+    }
+    
+    .page-header .text-muted {
+        margin: 5px 0 0 0;
     }
     
     .policy-meta {
         display: flex;
+        flex-wrap: wrap;
         gap: 30px;
         margin-top: 20px;
     }
@@ -22,25 +42,64 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        background: rgba(255,255,255,0.1);
+        padding: 10px 15px;
+        border-radius: 8px;
     }
     
     .policy-content {
         background: white;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
         line-height: 1.8;
+        font-size: 1.05rem;
     }
     
-    .policy-content h1, .policy-content h2, .policy-content h3 {
-        color: #2d3748;
+    .policy-content h1 {
+        color: #1a472a;
+        margin-top: 30px;
+        margin-bottom: 20px;
+        font-size: 2rem;
+        border-bottom: 3px solid #2d7a4d;
+        padding-bottom: 10px;
+    }
+    
+    .policy-content h2 {
+        color: #2d7a4d;
         margin-top: 25px;
         margin-bottom: 15px;
+        font-size: 1.5rem;
+    }
+    
+    .policy-content h3 {
+        color: #2d3748;
+        margin-top: 20px;
+        margin-bottom: 12px;
+        font-size: 1.25rem;
     }
     
     .policy-content ul, .policy-content ol {
-        margin-left: 20px;
+        margin-left: 30px;
+        margin-bottom: 20px;
+    }
+    
+    .policy-content li {
+        margin-bottom: 8px;
+    }
+    
+    .policy-content p {
+        margin-bottom: 15px;
+        text-align: justify;
+    }
+    
+    .policy-content blockquote {
+        border-left: 4px solid #2d7a4d;
+        padding-left: 20px;
+        margin: 20px 0;
+        font-style: italic;
+        color: #555;
     }
     
     .confirmations-section {
@@ -51,8 +110,13 @@
     }
     
     .confirmation-item {
-        padding: 10px;
+        padding: 12px;
         border-bottom: 1px solid #e2e8f0;
+        transition: background 0.2s;
+    }
+    
+    .confirmation-item:hover {
+        background: #edf2f7;
     }
     
     .confirmation-item:last-child {
@@ -62,9 +126,17 @@
     .badge-version {
         background: #fbbf24;
         color: #78350f;
-        padding: 5px 12px;
+        padding: 8px 16px;
         border-radius: 20px;
         font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .badge-status {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
     }
     
     .btn-confirm-policy {
@@ -73,16 +145,80 @@
         right: 30px;
         padding: 15px 30px;
         font-size: 1.1rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         z-index: 1000;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    .info-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        height: 100%;
+    }
+    
+    .info-card h6 {
+        color: #666;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+    
+    .info-card .value {
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: #1a472a;
+    }
+    
+    .timeline-item {
+        border-left: 3px solid #2d7a4d;
+        padding-left: 20px;
+        margin-bottom: 15px;
+        position: relative;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 0;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #2d7a4d;
+    }
+    
+    @media print {
+        .page-header, .btn-confirm-policy { display: none; }
+        .policy-content { box-shadow: none; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Page Header con botón Volver -->
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-file-contract"></i> Detalles de la Política</h1>
+        <p class="text-muted">Visualización completa de la política</p>
+    </div>
+    <div>
+        <a href="{{ url_for('policies.list_policies') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
 <!-- Header de la política -->
 <div class="policy-header">
-    <div class="d-flex justify-content-between align-items-start">
+    <div class="d-flex justify-content-between align-items-start flex-wrap">
         <div>
             <h1 class="mb-3">
                 <i class="fas fa-file-contract"></i> {{ policy.title }}
@@ -97,19 +233,27 @@
                 </div>
                 <div class="policy-meta-item">
                     <i class="fas fa-{{ 'check-circle' if policy.is_active else 'times-circle' }}"></i>
-                    <span>{{ 'Activa' if policy.is_active else 'Inactiva' }}</span>
+                    <span class="badge-status {{ 'bg-success' if policy.is_active else 'bg-danger' }}">
+                        {{ 'Activa' if policy.is_active else 'Inactiva' }}
+                    </span>
                 </div>
             </div>
         </div>
         
         {% if current_user.role == 'administrador' %}
         <div class="d-flex gap-2">
-            <a href="{{ url_for('policies.edit_policy', policy_id=policy.id) }}" class="btn btn-warning">
+            <button class="btn btn-warning" onclick="window.location.href='{{ url_for('policies.edit_policy', policy_id=policy.id) }}'">
                 <i class="fas fa-edit"></i> Editar
-            </a>
-            <a href="{{ url_for('policies.list_policies') }}" class="btn btn-light">
-                <i class="fas fa-arrow-left"></i> Volver
-            </a>
+            </button>
+            <button class="btn btn-info" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </div>
+        {% else %}
+        <div>
+            <button class="btn btn-info" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
         </div>
         {% endif %}
     </div>
@@ -117,42 +261,108 @@
 
 <div class="row">
     <!-- Contenido Principal -->
-    <div class="col-md-8">
-        <!-- Descripción -->
+    <div class="col-lg-8">
+        <!-- Descripción General -->
         <div class="policy-content">
-            <h3><i class="fas fa-info-circle"></i> Descripción</h3>
-            <p class="lead">{{ policy.description }}</p>
+            <h1><i class="fas fa-align-left"></i> Descripción General</h1>
+            <p class="lead" style="font-size: 1.15rem; color: #555;">{{ policy.description }}</p>
         </div>
         
-        <!-- Contenido Completo -->
+        <!-- Contenido Completo de la Política -->
         {% if policy.content %}
         <div class="policy-content">
-            <h3><i class="fas fa-file-alt"></i> Contenido Completo</h3>
-            <div class="policy-text">
-                {{ policy.content|safe|nl2br }}
-            </div>
+            <h1><i class="fas fa-file-alt"></i> Contenido de la Política</h1>
+            <div class="policy-text" style="white-space: pre-wrap;">{{ policy.content }}</div>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Atención:</strong> Esta política aún no tiene contenido detallado.
+            {% if current_user.role == 'administrador' %}
+                <a href="{{ url_for('policies.edit_policy', policy_id=policy.id) }}" class="alert-link">Agregar contenido</a>
+            {% endif %}
         </div>
         {% endif %}
-    </div>
-    
-    <!-- Sidebar -->
-    <div class="col-md-4">
-        <!-- Información de la Política -->
+        
+        <!-- Acciones Rápidas -->
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-info"></i> Información</h5>
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-cogs"></i> Acciones</h5>
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <small class="text-muted">Fecha de Creación</small><br>
-                    <strong>{{ policy.created_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-primary w-100" onclick="window.print()">
+                            <i class="fas fa-print"></i> Imprimir Política
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-secondary w-100" onclick="downloadPolicy()">
+                            <i class="fas fa-download"></i> Descargar PDF
+                        </button>
+                    </div>
+                    {% if current_user.role == 'administrador' %}
+                    <div class="col-md-6">
+                        <a href="{{ url_for('policies.edit_policy', policy_id=policy.id) }}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-edit"></i> Editar Política
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-danger w-100" onclick="confirmDelete()">
+                            <i class="fas fa-trash"></i> Eliminar Política
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
-                <div class="mb-3">
-                    <small class="text-muted">Última Actualización</small><br>
-                    <strong>{{ policy.updated_at.strftime('%d/%m/%Y %H:%M') }}</strong>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar - Información Adicional -->
+    <div class="col-lg-4">
+        <!-- Información General -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información de la Política</h5>
+            </div>
+            <div class="card-body">
+                <div class="info-card border-0 shadow-none p-0 mb-3">
+                    <h6><i class="fas fa-calendar-plus"></i> Fecha de Creación</h6>
+                    <div class="value">{{ policy.created_at.strftime('%d/%m/%Y') }}</div>
+                    <small class="text-muted">{{ policy.created_at.strftime('%H:%M:%S') }}</small>
                 </div>
-                <div class="mb-3">
-                    <small class="text-muted">Versión</small><br>
+                <hr>
+                <div class="info-card border-0 shadow-none p-0 mb-3">
+                    <h6><i class="fas fa-sync"></i> Última Actualización</h6>
+                    <div class="value">{{ policy.updated_at.strftime('%d/%m/%Y') }}</div>
+                    <small class="text-muted">{{ policy.updated_at.strftime('%H:%M:%S') }}</small>
+                </div>
+                <hr>
+                <div class="info-card border-0 shadow-none p-0 mb-3">
+                    <h6><i class="fas fa-code-branch"></i> Versión</h6>
+                    <div class="value">{{ policy.version }}</div>
+                </div>
+                <hr>
+                <div class="info-card border-0 shadow-none p-0 mb-3">
+                    <h6><i class="fas fa-calendar-check"></i> Vigencia</h6>
+                    <div class="value">{{ policy.effective_date.strftime('%d/%m/%Y') }}</div>
+                </div>
+                <hr>
+                <div class="info-card border-0 shadow-none p-0 mb-3">
+                    <h6><i class="fas fa-clipboard-check"></i> Requiere Confirmación</h6>
+                    <span class="badge {% if policy.requires_confirmation %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                        {{ 'SÍ' if policy.requires_confirmation else 'NO' }}
+                    </span>
+                </div>
+                <hr>
+                <div class="info-card border-0 shadow-none p-0">
+                    <h6><i class="fas fa-toggle-on"></i> Estado</h6>
+                    <span class="badge {% if policy.is_active %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                        {{ 'ACTIVA' if policy.is_active else 'INACTIVA' }}
+                    </span>
+                </div>
+            </div>
+        </div>
                     <strong>{{ policy.version }}</strong>
                 </div>
                 <div class="mb-3">
@@ -219,6 +429,91 @@
         </div>
         {% endif %}
         {% endif %}
+        
+        <!-- Historial de Cambios -->
+        {% if current_user.role == 'administrador' and policy_history|length > 0 %}
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Historial de Cambios</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for log in policy_history %}
+                    <div class="timeline-item mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>
+                                    {% if log.action == 'create' %}
+                                        <i class="fas fa-plus-circle text-success"></i> Política Creada
+                                    {% elif log.action == 'update' %}
+                                        <i class="fas fa-edit text-info"></i> Política Actualizada
+                                    {% elif log.action == 'delete' %}
+                                        <i class="fas fa-trash text-danger"></i> Política Eliminada
+                                    {% elif log.action == 'view_policy' %}
+                                        <i class="fas fa-eye text-secondary"></i> Política Vista
+                                    {% else %}
+                                        <i class="fas fa-circle text-muted"></i> {{ log.action }}
+                                    {% endif %}
+                                </strong>
+                                <br>
+                                <small class="text-muted">
+                                    Por: <strong>{{ log.user.full_name if log.user else 'Sistema' }}</strong> |
+                                    {{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }} |
+                                    IP: {{ log.ip_address or 'N/A' }}
+                                </small>
+                                {% if log.changes %}
+                                <div class="mt-2">
+                                    <small class="text-info">
+                                        <strong>Cambios realizados:</strong>
+                                        <pre class="bg-light p-2 rounded mt-1" style="font-size: 0.85rem;">{{ log.changes }}</pre>
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if policy_history|length >= 10 %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('admin.audit_log') }}?entity_type=policy&entity_id={{ policy.id }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-list"></i> Ver historial completo
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Documentos Relacionados -->
+        <div class="card mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-paperclip"></i> Documentos y Recursos</h5>
+            </div>
+            <div class="card-body">
+                {% if policy.attachment_path %}
+                <div class="alert alert-info">
+                    <i class="fas fa-file-pdf"></i>
+                    <a href="{{ url_for('static', filename='uploads/' ~ policy.attachment_path) }}" target="_blank" class="alert-link">
+                        Ver documento adjunto
+                    </a>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay documentos adjuntos</p>
+                {% endif %}
+                
+                {% if current_user.role == 'administrador' %}
+                <div class="mt-3">
+                    <a href="{{ url_for('policies.edit_policy', policy_id=policy.id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Política
+                    </a>
+                    <button class="btn btn-danger" onclick="confirmDelete()">
+                        <i class="fas fa-trash"></i> Eliminar Política
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -239,14 +534,129 @@
 
 {% block extra_js %}
 <script>
-    // Convertir saltos de línea en párrafos
     $(document).ready(function() {
+        // Formatear el contenido de la política
         $('.policy-text').each(function() {
             var text = $(this).html();
+            // Convertir dobles saltos de línea en párrafos
             text = text.replace(/\n\n/g, '</p><p>');
+            // Convertir saltos simples en <br>
             text = text.replace(/\n/g, '<br>');
-            $(this).html('<p>' + text + '</p>');
+            // Envolver todo en párrafo
+            if (text.trim()) {
+                $(this).html('<p>' + text + '</p>');
+            }
         });
+        
+        // Resaltar enlaces en el contenido
+        $('.policy-content a').addClass('text-primary fw-bold');
+        
+        // Smooth scroll para enlaces internos
+        $('a[href^="#"]').on('click', function(e) {
+            e.preventDefault();
+            var target = $(this.getAttribute('href'));
+            if(target.length) {
+                $('html, body').stop().animate({
+                    scrollTop: target.offset().top - 100
+                }, 800);
+            }
+        });
+        
+        // Mostrar toast si se confirmó
+        {% if request.args.get('confirmed') %}
+        showToast('¡Política confirmada exitosamente!', 'success');
+        {% endif %}
     });
+    
+    // Función para confirmar eliminación
+    function confirmDelete() {
+        if (confirm('¿Estás seguro de que deseas eliminar esta política?\n\nEsta acción no se puede deshacer.')) {
+            // Crear formulario y enviarlo
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("policies.delete_policy", policy_id=policy.id) }}';
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+    
+    // Función para descargar como PDF
+    function downloadPolicy() {
+        // Esta función puede implementarse con jsPDF o una ruta de backend
+        alert('Funcionalidad de descarga en desarrollo.\nPor ahora puedes usar Ctrl+P para imprimir.');
+        window.print();
+    }
+    
+    // Función para mostrar toasts
+    function showToast(message, type = 'info') {
+        const toast = $(`
+            <div class="toast-notification ${type}" style="
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                z-index: 9999;
+                animation: slideIn 0.5s ease-out;
+            ">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle'}"></i>
+                ${message}
+            </div>
+        `);
+        
+        $('body').append(toast);
+        
+        setTimeout(() => {
+            toast.fadeOut(500, function() {
+                $(this).remove();
+            });
+        }, 3000);
+    }
+    
+    // Animación para el botón de confirmar
+    {% if policy.requires_confirmation and not user_confirmed %}
+    setInterval(function() {
+        $('.btn-confirm-policy').toggleClass('shadow-lg');
+    }, 1500);
+    {% endif %}
+    
+    // Imprimir sección específica
+    function printSection(sectionId) {
+        const content = document.getElementById(sectionId).innerHTML;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>{{ policy.title }}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <style>
+                        body { padding: 20px; font-family: Arial, sans-serif; }
+                        h1 { color: #1a472a; border-bottom: 3px solid #2d7a4d; padding-bottom: 10px; }
+                    </style>
+                </head>
+                <body>
+                    ${content}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
 </script>
+
+<style>
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
 {% endblock %}

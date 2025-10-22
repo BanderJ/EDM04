@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Registro de Auditoría - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .audit-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .filter-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .log-entry {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 4px solid #667eea;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s;
+    }
+    
+    .log-entry:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .log-entry.create {
+        border-left-color: #11998e;
+    }
+    
+    .log-entry.update {
+        border-left-color: #4facfe;
+    }
+    
+    .log-entry.delete {
+        border-left-color: #fa709a;
+    }
+    
+    .log-entry.login {
+        border-left-color: #38ef7d;
+    }
+    
+    .log-entry.logout {
+        border-left-color: #f093fb;
+    }
+    
+    .log-icon {
+        font-size: 1.5rem;
+        margin-right: 10px;
+    }
+    
+    .log-timestamp {
+        font-size: 0.85rem;
+        color: #666;
+    }
+    
+    .log-changes {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .badge-action {
+        font-size: 0.75rem;
+        padding: 5px 10px;
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .stats-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="audit-header">
+    <h1><i class="fas fa-clipboard-list"></i> Registro de Auditoría del Sistema</h1>
+    <p class="mb-0">Bitácora completa de todas las acciones realizadas en el sistema</p>
+</div>
+
+<!-- Estadísticas Rápidas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            <div class="stats-value">{{ total_logs }}</div>
+            <div>Total de Registros</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="stats-value">{{ logs_today }}</div>
+            <div>Registros Hoy</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <div class="stats-value">{{ active_users }}</div>
+            <div>Usuarios Activos</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+            <div class="stats-value">{{ actions_count }}</div>
+            <div>Acciones Únicas</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filter-card">
+    <h5><i class="fas fa-filter"></i> Filtros de Búsqueda</h5>
+    <form method="GET" action="{{ url_for('admin.audit_log') }}" class="row g-3 mt-2">
+        <div class="col-md-3">
+            <label class="form-label">Usuario</label>
+            <select name="user_id" class="form-select">
+                <option value="">Todos los usuarios</option>
+                {% for user in users %}
+                <option value="{{ user.id }}" {% if request.args.get('user_id') == user.id|string %}selected{% endif %}>
+                    {{ user.full_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Acción</label>
+            <select name="action" class="form-select">
+                <option value="">Todas las acciones</option>
+                <option value="create" {% if request.args.get('action') == 'create' %}selected{% endif %}>Crear</option>
+                <option value="update" {% if request.args.get('action') == 'update' %}selected{% endif %}>Actualizar</option>
+                <option value="delete" {% if request.args.get('action') == 'delete' %}selected{% endif %}>Eliminar</option>
+                <option value="view_policy" {% if request.args.get('action') == 'view_policy' %}selected{% endif %}>Ver Política</option>
+                <option value="confirm_policy" {% if request.args.get('action') == 'confirm_policy' %}selected{% endif %}>Confirmar Política</option>
+                <option value="login" {% if request.args.get('action') == 'login' %}selected{% endif %}>Inicio de Sesión</option>
+                <option value="logout" {% if request.args.get('action') == 'logout' %}selected{% endif %}>Cierre de Sesión</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Tipo de Entidad</label>
+            <select name="entity_type" class="form-select">
+                <option value="">Todos los tipos</option>
+                <option value="policy" {% if request.args.get('entity_type') == 'policy' %}selected{% endif %}>Política</option>
+                <option value="audit" {% if request.args.get('entity_type') == 'audit' %}selected{% endif %}>Auditoría</option>
+                <option value="certification" {% if request.args.get('entity_type') == 'certification' %}selected{% endif %}>Certificación</option>
+                <option value="user" {% if request.args.get('entity_type') == 'user' %}selected{% endif %}>Usuario</option>
+                <option value="finding" {% if request.args.get('entity_type') == 'finding' %}selected{% endif %}>Hallazgo</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Fecha Desde</label>
+            <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+        </div>
+        <div class="col-md-12 text-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+            <a href="{{ url_for('admin.audit_log') }}" class="btn btn-secondary">
+                <i class="fas fa-redo"></i> Limpiar
+            </a>
+            <button type="button" class="btn btn-success" onclick="exportLogs()">
+                <i class="fas fa-file-excel"></i> Exportar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Lista de Logs -->
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Registros de Auditoría</h5>
+    </div>
+    <div class="card-body">
+        {% if logs.items %}
+            {% for log in logs.items %}
+            <div class="log-entry {{ log.action }}">
+                <div class="row">
+                    <div class="col-md-1 text-center">
+                        {% if log.action == 'create' %}
+                            <i class="fas fa-plus-circle log-icon text-success"></i>
+                        {% elif log.action == 'update' %}
+                            <i class="fas fa-edit log-icon text-info"></i>
+                        {% elif log.action == 'delete' %}
+                            <i class="fas fa-trash log-icon text-danger"></i>
+                        {% elif log.action == 'login' %}
+                            <i class="fas fa-sign-in-alt log-icon text-success"></i>
+                        {% elif log.action == 'logout' %}
+                            <i class="fas fa-sign-out-alt log-icon text-warning"></i>
+                        {% elif log.action == 'view_policy' %}
+                            <i class="fas fa-eye log-icon text-secondary"></i>
+                        {% elif log.action == 'confirm_policy' %}
+                            <i class="fas fa-check-circle log-icon text-primary"></i>
+                        {% else %}
+                            <i class="fas fa-circle log-icon text-muted"></i>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-11">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ log.user.full_name if log.user else 'Sistema' }}</strong>
+                                <span class="badge badge-action bg-{{ 
+                                    'success' if log.action == 'create' else
+                                    'info' if log.action == 'update' else
+                                    'danger' if log.action == 'delete' else
+                                    'primary' if log.action in ['login', 'confirm_policy'] else
+                                    'warning' if log.action == 'logout' else
+                                    'secondary'
+                                }}">{{ log.action }}</span>
+                                
+                                {% if log.entity_type %}
+                                <span class="badge bg-dark">{{ log.entity_type }}</span>
+                                {% endif %}
+                                
+                                {% if log.entity_id %}
+                                <span class="text-muted">#{{ log.entity_id }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="log-timestamp">
+                                <i class="fas fa-clock"></i> {{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}
+                                <br>
+                                <i class="fas fa-network-wired"></i> {{ log.ip_address or 'N/A' }}
+                            </div>
+                        </div>
+                        
+                        {% if log.changes %}
+                        <div class="log-changes">
+                            <strong>Cambios realizados:</strong>
+                            <pre class="mb-0">{{ log.changes }}</pre>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Paginación -->
+            <nav aria-label="Navegación de registros">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if logs.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.audit_log', page=logs.prev_num, **request.args) }}">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == logs.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.audit_log', page=page_num, **request.args) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if logs.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.audit_log', page=logs.next_num, **request.args) }}">
+                            Siguiente <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% else %}
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle fa-3x mb-3"></i>
+                <h5>No hay registros de auditoría</h5>
+                <p class="mb-0">No se encontraron registros con los filtros seleccionados.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function exportLogs() {
+        // Obtener parámetros actuales
+        const params = new URLSearchParams(window.location.search);
+        params.append('export', 'excel');
+        
+        // Redirigir a la ruta de exportación
+        window.location.href = '{{ url_for("admin.audit_log") }}?' + params.toString();
+    }
+    
+    // Auto-refresh cada 30 segundos si está en tiempo real
+    {% if request.args.get('realtime') == '1' %}
+    setTimeout(function() {
+        location.reload();
+    }, 30000);
+    {% endif %}
+</script>
+{% endblock %}

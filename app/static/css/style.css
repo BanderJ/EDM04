@@ -29,8 +29,6 @@ html, body {
 }
 
 body {
-    display: flex;
-    flex-direction: column;
     background-color: #f5f5f5;
 }
 
@@ -160,7 +158,18 @@ main {
     border-radius: 10px 10px 0 0 !important;
 }
 
-.card-title {
+/* Títulos blancos en TODOS los card-header */
+.card-header .card-title,
+.card-header h5,
+.card-header h5.card-title,
+h5.card-title.mb-0 {
+    color: white !important;
+    font-weight: bold;
+    margin-bottom: 0 !important;
+}
+
+/* Para card-title fuera de headers (si los hay) */
+.card-body .card-title {
     color: var(--primary-color);
     font-weight: bold;
     margin-bottom: 15px;
@@ -846,5 +855,32 @@ body.modal-open {
         border-radius: 0.25rem !important;
         margin-bottom: 0.25rem;
     }
+}
+
+/* ===================================
+   STICKY FOOTER - SIEMPRE EN LA PARTE INFERIOR
+   =================================== */
+
+/* El body usa flexbox con min-vh-100 para ocupar toda la altura */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* El contenedor principal crece para empujar el footer abajo */
+.container-fluid.flex-grow-1 {
+    flex: 1 0 auto;
+}
+
+/* El footer se mantiene al final */
+.footer {
+    flex-shrink: 0;
+    width: 100%;
+}
+
+/* Asegurar que el sidebar no interfiera con el layout */
+.sidebar {
+    min-height: calc(100vh - 56px); /* Altura total menos navbar */
 }
 

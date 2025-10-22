@@ -277,17 +277,42 @@ def new_certification():
 @login_required
 def edit_certification(cert_id):
     """Editar certificación"""
+    from app.utils import log_action, get_entity_changes
+    
     certification = Certification.query.get_or_404(cert_id)
     
     if request.method == 'POST':
         try:
-            certification.name = request.form.get('name')
-            certification.norm = request.form.get('norm')
-            certification.issuing_entity = request.form.get('issuing_entity')
-            certification.emission_date = datetime.strptime(request.form.get('emission_date'), '%Y-%m-%d').date()
-            certification.expiration_date = datetime.strptime(request.form.get('expiration_date'), '%Y-%m-%d').date()
-            certification.responsible_id = request.form.get('responsible_id')
-            certification.notes = request.form.get('notes', '')
+            # Capturar datos originales para comparar
+            original_data = {
+                'name': certification.name,
+                'norm': certification.norm,
+                'issuing_entity': certification.issuing_entity,
+                'emission_date': certification.emission_date,
+                'expiration_date': certification.expiration_date,
+                'responsible_id': certification.responsible_id,
+                'notes': certification.notes
+            }
+            
+            # Actualizar datos
+            new_data = {
+                'name': request.form.get('name'),
+                'norm': request.form.get('norm'),
+                'issuing_entity': request.form.get('issuing_entity'),
+                'emission_date': datetime.strptime(request.form.get('emission_date'), '%Y-%m-%d').date(),
+                'expiration_date': datetime.strptime(request.form.get('expiration_date'), '%Y-%m-%d').date(),
+                'responsible_id': request.form.get('responsible_id'),
+                'notes': request.form.get('notes', '')
+            }
+            
+            # Aplicar cambios
+            certification.name = new_data['name']
+            certification.norm = new_data['norm']
+            certification.issuing_entity = new_data['issuing_entity']
+            certification.emission_date = new_data['emission_date']
+            certification.expiration_date = new_data['expiration_date']
+            certification.responsible_id = new_data['responsible_id']
+            certification.notes = new_data['notes']
             
             # Guardar nuevo documento si se adjuntó
             if 'document' in request.files:
@@ -298,15 +323,23 @@ def edit_certification(cert_id):
             certification.get_status()
             certification.updated_at = datetime.now()
             
-            # Audit log
-            log_entry = AuditLog(
+            # Detectar cambios para audit log
+            changes = get_entity_changes(
+                Certification.query.get(cert_id),
+                new_data,
+                ['name', 'norm', 'issuing_entity', 'emission_date', 'expiration_date', 'notes']
+            )
+            
+            # Audit log con cambios específicos
+            log_action(
                 user_id=current_user.id,
                 action='update',
                 entity_type='certification',
                 entity_id=cert_id,
+                changes=changes,
                 ip_address=request.remote_addr
             )
-            db.session.add(log_entry)
+            
             db.session.commit()
             
             flash('Certificación actualizada exitosamente.', 'success')
@@ -702,11 +735,44 @@ def new_policy():
 @login_required
 def view_policy(policy_id):
     """Ver detalles de política"""
+    from app.utils import log_action
+    
     policy = Policy.query.get_or_404(policy_id)
     confirmations = PolicyConfirmation.query.filter_by(policy_id=policy_id).all()
     confirmed_count = sum(1 for c in confirmations if c.confirmed)
+    pending_count = len(confirmations) - confirmed_count
     
-    return render_template('policies/view.html', policy=policy, confirmations=confirmations, confirmed_count=confirmed_count)
+    # Verificar si el usuario actual ya confirmó
+    user_confirmed = False
+    if current_user.is_authenticated:
+        user_confirmation = PolicyConfirmation.query.filter_by(
+            policy_id=policy_id,
+            user_id=current_user.id
+        ).first()
+        user_confirmed = user_confirmation.confirmed if user_confirmation else False
+    
+    # Registrar que el usuario vio esta política
+    log_action(
+        user_id=current_user.id,
+        action='view_policy',
+        entity_type='policy',
+        entity_id=policy_id,
+        ip_address=request.remote_addr
+    )
+    
+    # Obtener historial de cambios de esta política
+    policy_history = AuditLog.query.filter_by(
+        entity_type='policy',
+        entity_id=policy_id
+    ).order_by(AuditLog.created_at.desc()).limit(10).all()
+    
+    return render_template('policies/view.html', 
+                         policy=policy, 
+                         confirmations=confirmations, 
+                         confirmed_count=confirmed_count,
+                         pending_count=pending_count,
+                         user_confirmed=user_confirmed,
+                         policy_history=policy_history)
 
 @policies_bp.route('/<int:policy_id>/confirm', methods=['POST'])
 @login_required
@@ -741,6 +807,118 @@ def confirm_policy(policy_id):
     
     flash('Política confirmada exitosamente.', 'success')
     return redirect(url_for('policies.view_policy', policy_id=policy_id))
+
+@policies_bp.route('/<int:policy_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_policy(policy_id):
+    """Editar política existente"""
+    from app.utils import log_action, get_entity_changes
+    
+    if current_user.role != UserRole.ADMINISTRADOR.value:
+        flash('Solo administradores pueden editar políticas.', 'danger')
+        return redirect(url_for('policies.list_policies'))
+    
+    policy = Policy.query.get_or_404(policy_id)
+    
+    if request.method == 'POST':
+        try:
+            # Capturar datos originales
+            original_data = {
+                'title': policy.title,
+                'description': policy.description,
+                'content': policy.content,
+                'version': policy.version,
+                'effective_date': policy.effective_date,
+                'requires_confirmation': policy.requires_confirmation,
+                'is_active': policy.is_active
+            }
+            
+            # Nuevos datos
+            new_data = {
+                'title': request.form.get('title'),
+                'description': request.form.get('description'),
+                'content': request.form.get('content'),
+                'version': request.form.get('version', policy.version),
+                'effective_date': datetime.strptime(request.form.get('effective_date'), '%Y-%m-%d').date(),
+                'requires_confirmation': 'requires_confirmation' in request.form,
+                'is_active': 'is_active' in request.form
+            }
+            
+            if not all([new_data['title'], new_data['description']]):
+                flash('El título y descripción son obligatorios.', 'danger')
+                return redirect(url_for('policies.edit_policy', policy_id=policy_id))
+            
+            # Aplicar cambios
+            policy.title = new_data['title']
+            policy.description = new_data['description']
+            policy.content = new_data['content']
+            policy.version = new_data['version']
+            policy.effective_date = new_data['effective_date']
+            policy.requires_confirmation = new_data['requires_confirmation']
+            policy.is_active = new_data['is_active']
+            policy.updated_at = datetime.now()
+            
+            # Detectar cambios para audit log
+            changes = get_entity_changes(
+                Policy.query.get(policy_id),
+                new_data,
+                ['title', 'description', 'version', 'effective_date']
+            )
+            
+            # Audit log
+            log_action(
+                user_id=current_user.id,
+                action='update',
+                entity_type='policy',
+                entity_id=policy_id,
+                changes=changes,
+                ip_address=request.remote_addr
+            )
+            
+            db.session.commit()
+            
+            flash('Política actualizada exitosamente.', 'success')
+            return redirect(url_for('policies.view_policy', policy_id=policy_id))
+        
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar política: {str(e)}', 'danger')
+    
+    return render_template('policies/edit.html', policy=policy)
+
+@policies_bp.route('/<int:policy_id>/delete', methods=['POST'])
+@login_required
+def delete_policy(policy_id):
+    """Eliminar política"""
+    from app.utils import log_action
+    
+    if current_user.role != UserRole.ADMINISTRADOR.value:
+        flash('Solo administradores pueden eliminar políticas.', 'danger')
+        return redirect(url_for('policies.list_policies'))
+    
+    policy = Policy.query.get_or_404(policy_id)
+    policy_title = policy.title
+    
+    try:
+        # Audit log antes de eliminar
+        log_action(
+            user_id=current_user.id,
+            action='delete',
+            entity_type='policy',
+            entity_id=policy_id,
+            changes={'title': policy_title},
+            ip_address=request.remote_addr
+        )
+        
+        db.session.delete(policy)
+        db.session.commit()
+        
+        flash(f'Política "{policy_title}" eliminada exitosamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar política: {str(e)}', 'danger')
+    
+    return redirect(url_for('policies.list_policies'))
 
 # ============ REPORTES ============
 @reports_bp.route('/')
@@ -922,11 +1100,56 @@ def edit_user(user_id):
 @login_required
 def audit_log():
     """Ver registro de auditoría del sistema"""
+    from datetime import date, timedelta
+    from sqlalchemy import func
+    
     if current_user.role != UserRole.ADMINISTRADOR.value:
         flash('No tienes permiso para acceder a esta sección.', 'danger')
         return redirect(url_for('dashboard.index'))
     
+    # Parámetros de filtro
     page = request.args.get('page', 1, type=int)
-    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).paginate(page=page, per_page=20)
+    user_id = request.args.get('user_id', type=int)
+    action = request.args.get('action', type=str)
+    entity_type = request.args.get('entity_type', type=str)
+    date_from = request.args.get('date_from', type=str)
     
-    return render_template('admin/audit_log.html', logs=logs)
+    # Query base
+    query = AuditLog.query
+    
+    # Aplicar filtros
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+    if action:
+        query = query.filter_by(action=action)
+    if entity_type:
+        query = query.filter_by(entity_type=entity_type)
+    if date_from:
+        try:
+            from datetime import datetime
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(AuditLog.created_at >= date_from_obj)
+        except:
+            pass
+    
+    # Ordenar y paginar
+    logs = query.order_by(AuditLog.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
+    
+    # Estadísticas
+    total_logs = AuditLog.query.count()
+    logs_today = AuditLog.query.filter(
+        func.date(AuditLog.created_at) == date.today()
+    ).count()
+    active_users = User.query.filter_by(is_active=True).count()
+    actions_count = db.session.query(func.count(func.distinct(AuditLog.action))).scalar()
+    
+    # Obtener todos los usuarios para el filtro
+    users = User.query.filter_by(is_active=True).order_by(User.full_name).all()
+    
+    return render_template('admin/audit_log.html', 
+                         logs=logs,
+                         total_logs=total_logs,
+                         logs_today=logs_today,
+                         active_users=active_users,
+                         actions_count=actions_count,
+                         users=users)
