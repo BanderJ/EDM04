@@ -7,9 +7,34 @@
       "config": {
         "maxLambdaSize": "15mb"
       }
+    },
+    {
+      "src": "app/static/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/static/css/(.*)",
+      "dest": "/app/static/css/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/static/js/(.*)",
+      "dest": "/app/static/js/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/static/img/(.*)",
+      "dest": "/app/static/img/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
     {
       "src": "/static/(.*)",
       "dest": "/app/static/$1"
