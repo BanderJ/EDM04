@@ -64,9 +64,23 @@ class DevelopmentConfig(Config):
     DB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
     DB_PORT = os.environ.get('DB_PORT', '3306')
     DB_NAME = os.environ.get('DB_NAME', 'frutos_oro_db')
+    DB_ENGINE = os.environ.get('DB_ENGINE', 'mysql')  # 'mysql' o 'postgresql'
     
-    # Construye URI de conexión automáticamente
-    SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    # Construye URI de conexión automáticamente según el motor
+    if DB_ENGINE == 'postgresql':
+        # PostgreSQL con SSL para AWS RDS
+        SQLALCHEMY_DATABASE_URI = f'postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require'
+    else:
+        # MySQL/MariaDB - Si es AWS RDS, agrega SSL
+        if 'rds.amazonaws.com' in DB_HOST:
+            ssl_disabled = os.environ.get('DB_SSL_DISABLED', 'false').lower() == 'true'
+            if ssl_disabled:
+                SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4&ssl_disabled=true'
+            else:
+                SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4&ssl_ca=&ssl_disabled=false'
+        else:
+            # MySQL local sin SSL
+            SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
 
 class ProductionConfig(Config):
     """Configuración de producción - Vercel + MySQL en la nube
@@ -92,10 +106,19 @@ class ProductionConfig(Config):
     DB_HOST = os.environ.get('DB_HOST')
     DB_PORT = os.environ.get('DB_PORT', '3306')
     DB_NAME = os.environ.get('DB_NAME')
+    DB_ENGINE = os.environ.get('DB_ENGINE', 'mysql')
     
-    # Construir URI de conexión para MySQL en la nube
+    # Construir URI de conexión según el motor
     if all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME]):
-        SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
+        if DB_ENGINE == 'postgresql':
+            # PostgreSQL con SSL para AWS RDS
+            SQLALCHEMY_DATABASE_URI = f'postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require'
+        else:
+            # MySQL/MariaDB - Si es AWS RDS o cloud, agrega SSL
+            if 'rds.amazonaws.com' in DB_HOST or 'psdb.cloud' in DB_HOST:
+                SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4&ssl_ca=&ssl_disabled=false'
+            else:
+                SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
     else:
         # Fallback si faltan variables
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', '')

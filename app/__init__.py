@@ -26,8 +26,16 @@ def create_app(config_name='development'):
         except:
             return None
     
+    # Registrar context processors para templates
+    from app.decorators import check_permission
+    
+    @app.context_processor
+    def inject_permissions():
+        """Inyecta la función check_permission en todos los templates"""
+        return dict(check_permission=check_permission)
+    
     # Registrar blueprints
-    from app.routes import auth_bp, dashboard_bp, certifications_bp, audits_bp, policies_bp, reports_bp, admin_bp
+    from app.routes import auth_bp, dashboard_bp, certifications_bp, audits_bp, policies_bp, reports_bp, admin_bp, api_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -36,28 +44,47 @@ def create_app(config_name='development'):
     app.register_blueprint(policies_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(api_bp)
     
     # Crear contexto de aplicación e intentar inicializar BD
     with app.app_context():
         try:
             db.create_all()
-            print("✅ Base de datos conectada exitosamente")
+            
+            # Obtener configuración de BD
+            db_config = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+            if 'postgresql' in db_config:
+                db_type = "PostgreSQL"
+            elif 'mysql' in db_config:
+                db_type = "MySQL"
+            else:
+                db_type = "Base de datos"
+            
+            print(f"✅ {db_type} conectada exitosamente")
+            print(f"   Host: {app.config.get('DB_HOST', 'N/A')}")
+            print(f"   Puerto: {app.config.get('DB_PORT', 'N/A')}")
+            print(f"   Base de datos: {app.config.get('DB_NAME', 'N/A')}")
+            
         except Exception as e:
+            db_host = app.config.get('DB_HOST', 'N/A')
+            db_port = app.config.get('DB_PORT', 'N/A')
+            db_name = app.config.get('DB_NAME', 'N/A')
+            db_user = app.config.get('DB_USER', 'N/A')
+            
             print("\n" + "="*80)
-            print("⚠️  ADVERTENCIA: No se pudo conectar a MySQL")
+            print("⚠️  ADVERTENCIA: No se pudo conectar a la base de datos")
             print("="*80)
-            print("\n📋 Configuración esperada:")
-            print("   • Host: 127.0.0.1")
-            print("   • Puerto: 3307")
-            print("   • Usuario: root")
-            print("   • Contraseña: (vacía)")
-            print("   • BD: frutos_oro_db")
-            print("\n🔧 Solución:")
-            print("   1. Abre XAMPP Control Panel")
-            print("   2. Haz click en 'Start' para MySQL")
-            print("   3. Espera a que muestre 'Running' en puerto 3307")
-            print("   4. Reinicia esta aplicación")
-            print("\n📝 Más información en: INSTALACION_MYSQL.md")
+            print(f"\n📋 Configuración actual (.env):")
+            print(f"   • Host: {db_host}")
+            print(f"   • Puerto: {db_port}")
+            print(f"   • Usuario: {db_user}")
+            print(f"   • Base de datos: {db_name}")
+            print(f"\n❌ Error: {str(e)[:150]}")
+            print("\n🔧 Posibles soluciones:")
+            print("   1. Verifica que la base de datos esté corriendo")
+            print("   2. Verifica las credenciales en el archivo .env")
+            print("   3. Verifica la conectividad de red (firewall/security groups)")
+            print("   4. Verifica que el puerto esté correcto")
             print("="*80 + "\n")
             
             # La aplicación continúa ejecutándose aunque no esté la BD

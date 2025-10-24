@@ -54,6 +54,65 @@ class User(UserMixin, db.Model):
     def get_role(self):
         return UserRole(self.role)
     
+    def get_role_object(self):
+        """Obtiene el objeto Role completo del usuario"""
+        return Role.query.filter_by(name=self.role).first()
+    
+    def can(self, module_name, action):
+        """
+        Verifica si el usuario tiene permiso para realizar una acción en un módulo
+        
+        Args:
+            module_name (str): Nombre del módulo (ej: 'certifications', 'audits')
+            action (str): Acción a verificar (ej: 'view', 'create', 'edit', 'delete', 'export', 'approve')
+        
+        Returns:
+            bool: True si tiene el permiso, False si no
+        
+        Ejemplo:
+            if current_user.can('audits', 'create'):
+                # Permitir crear auditoría
+        """
+        if not self.is_active:
+            return False
+        
+        role_obj = self.get_role_object()
+        if not role_obj:
+            return False
+        
+        return role_obj.has_permission(module_name, action)
+    
+    def get_accessible_modules(self):
+        """
+        Obtiene la lista de módulos a los que el usuario tiene acceso (can_view=True)
+        
+        Returns:
+            list: Lista de diccionarios con información de módulos accesibles
+        """
+        role_obj = self.get_role_object()
+        if not role_obj:
+            return []
+        
+        permissions = RolePermission.query.filter(
+            RolePermission.role_id == role_obj.id,
+            RolePermission.can_view == True
+        ).join(Module).filter(Module.is_active == True).order_by(Module.display_order).all()
+        
+        modules = []
+        for perm in permissions:
+            modules.append({
+                'name': perm.module.name,
+                'display_name': perm.module.display_name,
+                'icon': perm.module.icon,
+                'can_create': perm.can_create,
+                'can_edit': perm.can_edit,
+                'can_delete': perm.can_delete,
+                'can_export': perm.can_export,
+                'can_approve': perm.can_approve
+            })
+        
+        return modules
+    
     def __repr__(self):
         return f'<User {self.username}>'
 
@@ -240,3 +299,132 @@ class AuditLog(db.Model):
     
     def __repr__(self):
         return f'<AuditLog {self.action} {self.entity_type}:{self.entity_id}>'
+
+class Role(db.Model):
+    """Modelo para roles de usuario"""
+    __tablename__ = 'roles'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    display_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    is_system_role = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relaciones
+    permissions = db.relationship('RolePermission', back_populates='role', cascade='all, delete-orphan')
+    
+    def has_permission(self, module_name, action):
+        """
+        Verifica si el rol tiene un permiso específico para un módulo
+        
+        Args:
+            module_name (str): Nombre del módulo (ej: 'certifications', 'audits')
+            action (str): Acción a verificar (ej: 'view', 'create', 'edit', 'delete', 'export', 'approve')
+        
+        Returns:
+            bool: True si tiene el permiso, False si no
+        """
+        permission = RolePermission.query.join(Module).filter(
+            RolePermission.role_id == self.id,
+            Module.name == module_name,
+            Module.is_active == True
+        ).first()
+        
+        if not permission:
+            return False
+        
+        action_map = {
+            'view': permission.can_view,
+            'create': permission.can_create,
+            'edit': permission.can_edit,
+            'delete': permission.can_delete,
+            'export': permission.can_export,
+            'approve': permission.can_approve
+        }
+        
+        return action_map.get(action, False)
+    
+    def get_module_permissions(self, module_name):
+        """Obtiene todos los permisos del rol para un módulo específico"""
+        permission = RolePermission.query.join(Module).filter(
+            RolePermission.role_id == self.id,
+            Module.name == module_name
+        ).first()
+        
+        if not permission:
+            return {
+                'view': False,
+                'create': False,
+                'edit': False,
+                'delete': False,
+                'export': False,
+                'approve': False
+            }
+        
+        return {
+            'view': permission.can_view,
+            'create': permission.can_create,
+            'edit': permission.can_edit,
+            'delete': permission.can_delete,
+            'export': permission.can_export,
+            'approve': permission.can_approve
+        }
+    
+    def __repr__(self):
+        return f'<Role {self.name}>'
+
+class Module(db.Model):
+    """Modelo para módulos del sistema"""
+    __tablename__ = 'modules'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    display_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    icon = db.Column(db.String(50))  # Clase de icono de Font Awesome
+    is_active = db.Column(db.Boolean, default=True)
+    display_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    # Relaciones
+    permissions = db.relationship('RolePermission', back_populates='module', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<Module {self.name}>'
+
+class RolePermission(db.Model):
+    """Modelo para permisos de roles por módulo"""
+    __tablename__ = 'role_permissions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id', ondelete='CASCADE'), nullable=False)
+    module_id = db.Column(db.Integer, db.ForeignKey('modules.id', ondelete='CASCADE'), nullable=False)
+    
+    # Permisos específicos
+    can_view = db.Column(db.Boolean, default=False, nullable=False)
+    can_create = db.Column(db.Boolean, default=False, nullable=False)
+    can_edit = db.Column(db.Boolean, default=False, nullable=False)
+    can_delete = db.Column(db.Boolean, default=False, nullable=False)
+    can_export = db.Column(db.Boolean, default=False, nullable=False)
+    can_approve = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Campo JSON para permisos personalizados adicionales
+    custom_permissions = db.Column(db.Text)  # JSON
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relaciones
+    role = db.relationship('Role', back_populates='permissions')
+    module = db.relationship('Module', back_populates='permissions')
+    
+    # Constraint único para role_id + module_id
+    __table_args__ = (
+        db.UniqueConstraint('role_id', 'module_id', name='uq_role_module'),
+        db.Index('idx_role_permissions', 'role_id', 'module_id'),
+    )
+    
+    def __repr__(self):
+        return f'<RolePermission Role:{self.role_id} Module:{self.module_id}>'

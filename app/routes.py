@@ -14,6 +14,7 @@ audits_bp = Blueprint('audits', __name__, url_prefix='/audits')
 policies_bp = Blueprint('policies', __name__, url_prefix='/policies')
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 # ============ RUTAS RAÍZ ============
 @auth_bp.route('/')
@@ -70,11 +71,12 @@ def login():
         except Exception as e:
             # Error de conexión a BD u otro error
             error_msg = str(e)
-            if 'Can\'t connect' in error_msg or 'OperationalError' in error_msg:
-                flash('⚠️ Error de conexión a la base de datos. Por favor, verifica que XAMPP MySQL esté ejecutándose en puerto 3307.', 'danger')
-                print(f"\n{'='*80}\n⚠️ Error de conexión a MySQL:\n{error_msg}\n{'='*80}\n")
+            if 'Can\'t connect' in error_msg or 'OperationalError' in error_msg or 'InterfaceError' in error_msg:
+                flash('⚠️ Error de conexión a la base de datos. Por favor, verifica la conexión.', 'danger')
+                print(f"\n{'='*80}\n⚠️ Error de conexión a la base de datos:\n{error_msg}\n{'='*80}\n")
             else:
-                flash(f'Error: {error_msg}', 'danger')
+                flash(f'Error en el login: {error_msg}', 'danger')
+                print(f"Error en login: {error_msg}")
             
             return redirect(url_for('auth.login'))
     
@@ -987,14 +989,68 @@ def policies_report():
 @login_required
 def list_users():
     """Listar usuarios (solo administrador)"""
+    from app.models import Role
+    
     if current_user.role != UserRole.ADMINISTRADOR.value:
         flash('No tienes permiso para acceder a esta sección.', 'danger')
         return redirect(url_for('dashboard.index'))
     
+    # Parámetros de filtro
     page = request.args.get('page', 1, type=int)
-    users = User.query.paginate(page=page, per_page=15)
+    role_filter = request.args.get('role', None)
+    status_filter = request.args.get('status', None)
+    search = request.args.get('search', None)
     
-    return render_template('admin/users.html', users=users)
+    # Query base
+    query = User.query
+    
+    # Aplicar filtros
+    if role_filter:
+        query = query.filter_by(role=role_filter)
+    
+    if status_filter == 'active':
+        query = query.filter_by(is_active=True)
+    elif status_filter == 'inactive':
+        query = query.filter_by(is_active=False)
+    
+    if search:
+        search_term = f'%{search}%'
+        query = query.filter(
+            db.or_(
+                User.username.ilike(search_term),
+                User.full_name.ilike(search_term),
+                User.email.ilike(search_term),
+                User.department.ilike(search_term)
+            )
+        )
+    
+    # Ordenar por rol y nombre
+    users = query.order_by(User.role, User.full_name).paginate(page=page, per_page=20, error_out=False)
+    
+    # Estadísticas
+    total_users = User.query.count()
+    active_users = User.query.filter_by(is_active=True).count()
+    inactive_users = User.query.filter_by(is_active=False).count()
+    
+    # Usuarios por rol
+    users_by_role = db.session.query(
+        User.role, 
+        db.func.count(User.id)
+    ).group_by(User.role).all()
+    
+    # Obtener todos los roles disponibles
+    all_roles = Role.query.order_by(Role.id).all()
+    
+    return render_template('admin/users.html', 
+                         users=users,
+                         total_users=total_users,
+                         active_users=active_users,
+                         inactive_users=inactive_users,
+                         users_by_role=users_by_role,
+                         all_roles=all_roles,
+                         current_role_filter=role_filter,
+                         current_status_filter=status_filter,
+                         current_search=search)
 
 @admin_bp.route('/users/new', methods=['GET', 'POST'])
 @login_required
@@ -1096,6 +1152,60 @@ def edit_user(user_id):
     
     return render_template('admin/edit_user.html', user=user)
 
+@admin_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
+@login_required
+def toggle_user_status(user_id):
+    """Activar/Desactivar usuario"""
+    import json
+    
+    if current_user.role != UserRole.ADMINISTRADOR.value:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 403
+    
+    try:
+        user = User.query.get_or_404(user_id)
+        
+        # No permitir que el admin se desactive a sí mismo
+        if user.id == current_user.id:
+            return jsonify({
+                'success': False, 
+                'message': 'No puedes desactivar tu propia cuenta'
+            }), 400
+        
+        # Cambiar estado
+        old_status = user.is_active
+        user.is_active = not user.is_active
+        
+        # Registrar en audit log
+        from app.utils import log_action
+        log_action(
+            user_id=current_user.id,
+            action='toggle_user_status',
+            entity_type='user',
+            entity_id=user.id,
+            changes=json.dumps({
+                'username': user.username,
+                'old_status': 'active' if old_status else 'inactive',
+                'new_status': 'active' if user.is_active else 'inactive'
+            }),
+            ip_address=request.remote_addr
+        )
+        
+        db.session.commit()
+        
+        status_text = 'activado' if user.is_active else 'desactivado'
+        return jsonify({
+            'success': True,
+            'message': f'Usuario {status_text} correctamente',
+            'is_active': user.is_active
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }), 500
+
 @admin_bp.route('/audit-log')
 @login_required
 def audit_log():
@@ -1153,3 +1263,294 @@ def audit_log():
                          active_users=active_users,
                          actions_count=actions_count,
                          users=users)
+
+@admin_bp.route('/permissions')
+@login_required
+def permissions():
+    """Gestión de permisos por rol"""
+    from app.models import Role, Module, RolePermission
+    
+    if current_user.role != UserRole.ADMINISTRADOR.value:
+        flash('No tienes permiso para acceder a esta sección.', 'danger')
+        return redirect(url_for('dashboard.index'))
+    
+    # Obtener todos los roles y módulos
+    roles = Role.query.order_by(Role.id).all()
+    modules = Module.query.filter_by(is_active=True).order_by(Module.display_order).all()
+    
+    # Construir matriz de permisos
+    permissions_matrix = {}
+    for role in roles:
+        permissions_matrix[role.id] = {}
+        for module in modules:
+            # Buscar permiso existente
+            perm = RolePermission.query.filter_by(
+                role_id=role.id, 
+                module_id=module.id
+            ).first()
+            
+            if perm:
+                permissions_matrix[role.id][module.id] = {
+                    'id': perm.id,
+                    'can_view': perm.can_view,
+                    'can_create': perm.can_create,
+                    'can_edit': perm.can_edit,
+                    'can_delete': perm.can_delete,
+                    'can_export': perm.can_export,
+                    'can_approve': perm.can_approve
+                }
+            else:
+                # No existe permiso, todos en False
+                permissions_matrix[role.id][module.id] = {
+                    'id': None,
+                    'can_view': False,
+                    'can_create': False,
+                    'can_edit': False,
+                    'can_delete': False,
+                    'can_export': False,
+                    'can_approve': False
+                }
+    
+    return render_template('admin/permissions.html',
+                         roles=roles,
+                         modules=modules,
+                         permissions_matrix=permissions_matrix)
+
+@admin_bp.route('/permissions/update', methods=['POST'])
+@login_required
+def update_permission():
+    """Actualizar un permiso específico"""
+    from app.models import RolePermission
+    import json
+    
+    if current_user.role != UserRole.ADMINISTRADOR.value:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 403
+    
+    try:
+        data = request.get_json()
+        role_id = data.get('role_id')
+        module_id = data.get('module_id')
+        permission_type = data.get('permission_type')
+        value = data.get('value', False)
+        
+        # Buscar o crear permiso
+        perm = RolePermission.query.filter_by(
+            role_id=role_id,
+            module_id=module_id
+        ).first()
+        
+        if not perm:
+            # Crear nuevo registro
+            perm = RolePermission(
+                role_id=role_id,
+                module_id=module_id,
+                can_view=False,
+                can_create=False,
+                can_edit=False,
+                can_delete=False,
+                can_export=False,
+                can_approve=False
+            )
+            db.session.add(perm)
+        
+        # Actualizar el permiso específico
+        if permission_type == 'can_view':
+            perm.can_view = value
+        elif permission_type == 'can_create':
+            perm.can_create = value
+        elif permission_type == 'can_edit':
+            perm.can_edit = value
+        elif permission_type == 'can_delete':
+            perm.can_delete = value
+        elif permission_type == 'can_export':
+            perm.can_export = value
+        elif permission_type == 'can_approve':
+            perm.can_approve = value
+        
+        db.session.commit()
+        
+        # Registrar en audit log
+        from app.utils import log_action
+        log_action(
+            user_id=current_user.id,
+            action='update_permission',
+            entity_type='role_permission',
+            entity_id=perm.id,
+            changes=json.dumps({
+                'role_id': role_id,
+                'module_id': module_id,
+                permission_type: value
+            }),
+            ip_address=request.remote_addr
+        )
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Permiso actualizado correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False, 
+            'message': f'Error al actualizar permiso: {str(e)}'
+        }), 500
+
+# ============ API DE PRUEBA ============
+@api_bp.route('/test-db', methods=['GET'])
+def test_db_connection():
+    """Endpoint de prueba para verificar conexión y permisos de BD"""
+    try:
+        # Probar conexión básica
+        db.engine.connect()
+        
+        # Probar SELECT
+        user_count = User.query.count()
+        
+        # Intentar obtener usuarios
+        users = User.query.limit(5).all()
+        
+        users_data = []
+        for user in users:
+            users_data.append({
+                'id': user.id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'email': user.email,
+                'role': user.role,
+                'is_active': user.is_active,
+                'created_at': user.created_at.isoformat() if user.created_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'message': 'Conexión exitosa y permisos funcionando',
+            'database': {
+                'host': current_app.config.get('DB_HOST'),
+                'port': current_app.config.get('DB_PORT'),
+                'database': current_app.config.get('DB_NAME'),
+                'engine': current_app.config.get('DB_ENGINE')
+            },
+            'users': {
+                'total': user_count,
+                'sample': users_data
+            }
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        
+        return jsonify({
+            'success': False,
+            'message': 'Error al acceder a la base de datos',
+            'error': str(e),
+            'error_type': type(e).__name__,
+            'trace': error_trace,
+            'database': {
+                'host': current_app.config.get('DB_HOST'),
+                'port': current_app.config.get('DB_PORT'),
+                'database': current_app.config.get('DB_NAME'),
+                'engine': current_app.config.get('DB_ENGINE')
+            }
+        }), 500
+
+@api_bp.route('/test-login', methods=['POST'])
+def test_login():
+    """Endpoint para probar login sin interfaz"""
+    try:
+        data = request.get_json() or {}
+        username = data.get('username', 'admin')
+        password = data.get('password', 'admin123')
+        
+        # Buscar usuario
+        user = User.query.filter_by(username=username).first()
+        
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': f'Usuario "{username}" no encontrado',
+                'step': 'user_lookup'
+            }), 404
+        
+        # Verificar contraseña
+        password_ok = user.check_password(password)
+        
+        # Verificar activo
+        is_active = user.is_active
+        
+        return jsonify({
+            'success': password_ok and is_active,
+            'message': 'Login correcto' if (password_ok and is_active) else 'Login fallido',
+            'details': {
+                'user_found': True,
+                'username': user.username,
+                'full_name': user.full_name,
+                'email': user.email,
+                'role': user.role,
+                'is_active': is_active,
+                'password_correct': password_ok
+            }
+        }), 200 if (password_ok and is_active) else 401
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'message': 'Error al probar login',
+            'error': str(e),
+            'error_type': type(e).__name__,
+            'trace': traceback.format_exc()
+        }), 500
+
+@api_bp.route('/create-admin', methods=['POST'])
+def create_admin_user():
+    """Endpoint para crear usuario admin si no existe"""
+    try:
+        # Verificar si ya existe
+        existing = User.query.filter_by(username='admin').first()
+        
+        if existing:
+            return jsonify({
+                'success': False,
+                'message': 'Usuario admin ya existe',
+                'user': {
+                    'username': existing.username,
+                    'email': existing.email,
+                    'is_active': existing.is_active
+                }
+            }), 400
+        
+        # Crear admin
+        admin = User(
+            username='admin',
+            email='admin@frutosoro.com',
+            full_name='Administrador Sistema',
+            department='Dirección',
+            role='administrador',
+            is_active=True
+        )
+        admin.set_password('admin123')
+        
+        db.session.add(admin)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Usuario admin creado exitosamente',
+            'credentials': {
+                'username': 'admin',
+                'password': 'admin123',
+                'warning': 'Cambia esta contraseña después del primer login'
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return jsonify({
+            'success': False,
+            'message': 'Error al crear usuario admin',
+            'error': str(e),
+            'trace': traceback.format_exc()
+        }), 500

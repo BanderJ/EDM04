@@ -23,6 +23,52 @@ CREATE TABLE `users` (
   INDEX `idx_role` (`role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabla de Roles del Sistema
+CREATE TABLE `roles` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(50) UNIQUE NOT NULL,
+  `display_name` VARCHAR(100) NOT NULL,
+  `description` TEXT,
+  `is_system_role` BOOLEAN DEFAULT FALSE,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla de Módulos/Secciones del Sistema
+CREATE TABLE `modules` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(50) UNIQUE NOT NULL,
+  `display_name` VARCHAR(100) NOT NULL,
+  `description` TEXT,
+  `icon` VARCHAR(50),
+  `is_active` BOOLEAN DEFAULT TRUE,
+  `display_order` INT DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_name` (`name`),
+  INDEX `idx_is_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabla de Permisos por Rol y Módulo
+CREATE TABLE `role_permissions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `role_id` INT NOT NULL,
+  `module_id` INT NOT NULL,
+  `can_view` BOOLEAN DEFAULT FALSE,
+  `can_create` BOOLEAN DEFAULT FALSE,
+  `can_edit` BOOLEAN DEFAULT FALSE,
+  `can_delete` BOOLEAN DEFAULT FALSE,
+  `can_export` BOOLEAN DEFAULT FALSE,
+  `can_approve` BOOLEAN DEFAULT FALSE,
+  `custom_permissions` JSON,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `unique_role_module` (`role_id`, `module_id`),
+  FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`module_id`) REFERENCES `modules` (`id`) ON DELETE CASCADE,
+  INDEX `idx_role_module` (`role_id`, `module_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Tabla de Certificaciones
 CREATE TABLE `certifications` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -163,9 +209,9 @@ VALUES ('admin', 'admin@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$a
 -- auditor_interno: auditor123
 INSERT INTO `users` (`username`, `email`, `password_hash`, `full_name`, `department`, `role`, `is_active`) 
 VALUES 
-  ('jefe_produccion', 'jefe.produccion@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'Juan Pérez García', 'Producción', 'jefe_unidad', TRUE),
-  ('jefe_calidad', 'jefe.calidad@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'María Rodríguez López', 'Calidad', 'jefe_unidad', TRUE),
-  ('auditor_interno', 'auditor.interno@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'Carlos González Martínez', 'Auditoría', 'auditor', TRUE);
+  ('jefe_produccion', 'jefe.produccion@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'Juan Pérez García', 'Producción', 'jefe_produccion', TRUE),
+  ('jefe_calidad', 'jefe.calidad@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'María Rodríguez López', 'Calidad', 'jefe_calidad', TRUE),
+  ('auditor_interno', 'auditor.interno@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'Carlos González Martínez', 'Auditoría', 'auditor_interno', TRUE);
 
 -- Insertar certificaciones de ejemplo
 INSERT INTO `certifications` (`name`, `norm`, `issuing_entity`, `emission_date`, `expiration_date`, `responsible_id`, `status`, `notes`)
@@ -195,6 +241,125 @@ VALUES
    'Contenido completo de la política...', '1.0', '2025-10-01', TRUE, TRUE),
   ('Política de Higiene y Saneamiento', 'Procedimientos de higiene y saneamiento en todas las áreas de producción y almacenamiento.', 
    'Contenido completo de la política...', '2.0', '2025-09-15', TRUE, TRUE);
+
+-- ====================================================================
+-- SISTEMA DE ROLES Y PERMISOS
+-- ====================================================================
+
+-- Insertar roles del sistema
+INSERT INTO `roles` (`name`, `display_name`, `description`, `is_system_role`) 
+VALUES 
+  ('administrador', 'Administrador del Sistema', 'Acceso total al sistema, gestión de usuarios y permisos', TRUE),
+  ('jefe_unidad', 'Jefe de Unidad', 'Gestión completa de su área asignada', TRUE),
+  ('jefe_calidad', 'Jefe de Calidad', 'Gestión de calidad, auditorías y certificaciones', TRUE),
+  ('jefe_produccion', 'Jefe de Producción', 'Gestión de producción y cumplimiento normativo', TRUE),
+  ('auditor_interno', 'Auditor Interno', 'Realización y gestión de auditorías internas', TRUE),
+  ('auditor', 'Auditor', 'Consulta y registro de auditorías', TRUE),
+  ('usuario', 'Usuario General', 'Usuario con permisos básicos de consulta', TRUE);
+
+-- Insertar módulos del sistema
+INSERT INTO `modules` (`name`, `display_name`, `description`, `icon`, `is_active`, `display_order`) 
+VALUES 
+  ('dashboard', 'Dashboard', 'Panel principal con indicadores', 'fa-chart-line', TRUE, 1),
+  ('certifications', 'Certificaciones', 'Gestión de certificaciones normativas', 'fa-certificate', TRUE, 2),
+  ('audits', 'Auditorías', 'Gestión de auditorías internas y externas', 'fa-clipboard-check', TRUE, 3),
+  ('findings', 'Hallazgos', 'Gestión de hallazgos de auditorías', 'fa-exclamation-triangle', TRUE, 4),
+  ('policies', 'Políticas', 'Gestión de políticas de cumplimiento', 'fa-file-contract', TRUE, 5),
+  ('reports', 'Reportes', 'Generación de reportes y estadísticas', 'fa-file-pdf', TRUE, 6),
+  ('users', 'Usuarios', 'Administración de usuarios del sistema', 'fa-users', TRUE, 7),
+  ('permissions', 'Permisos', 'Configuración de permisos por rol', 'fa-key', TRUE, 8),
+  ('audit_logs', 'Registro del Sistema', 'Bitácora de acciones del sistema', 'fa-history', TRUE, 9);
+
+-- ====================================================================
+-- PERMISOS POR ROL - ADMINISTRADOR
+-- ====================================================================
+INSERT INTO `role_permissions` (`role_id`, `module_id`, `can_view`, `can_create`, `can_edit`, `can_delete`, `can_export`, `can_approve`) 
+VALUES 
+  -- Administrador tiene todos los permisos en todos los módulos
+  (1, 1, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),  -- Dashboard
+  (1, 2, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),  -- Certificaciones
+  (1, 3, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),  -- Auditorías
+  (1, 4, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),  -- Hallazgos
+  (1, 5, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),  -- Políticas
+  (1, 6, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),  -- Reportes
+  (1, 7, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),  -- Usuarios
+  (1, 8, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),  -- Permisos
+  (1, 9, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE); -- Registro del Sistema (solo ver y exportar)
+
+-- ====================================================================
+-- PERMISOS POR ROL - JEFE DE CALIDAD
+-- ====================================================================
+INSERT INTO `role_permissions` (`role_id`, `module_id`, `can_view`, `can_create`, `can_edit`, `can_delete`, `can_export`, `can_approve`) 
+VALUES 
+  (3, 1, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE),   -- Dashboard: Ver y exportar
+  (3, 2, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),       -- Certificaciones: Todos los permisos
+  (3, 3, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),       -- Auditorías: Todos los permisos
+  (3, 4, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),       -- Hallazgos: Todos los permisos
+  (3, 5, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE),      -- Políticas: Ver, crear, editar, exportar, aprobar (no eliminar)
+  (3, 6, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE),    -- Reportes: Ver, crear, exportar
+  (3, 7, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Usuarios: Solo ver
+  (3, 8, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE), -- Permisos: Sin acceso
+  (3, 9, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE); -- Registro: Sin acceso
+
+-- ====================================================================
+-- PERMISOS POR ROL - JEFE DE PRODUCCIÓN
+-- ====================================================================
+INSERT INTO `role_permissions` (`role_id`, `module_id`, `can_view`, `can_create`, `can_edit`, `can_delete`, `can_export`, `can_approve`) 
+VALUES 
+  (4, 1, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE),   -- Dashboard: Ver y exportar
+  (4, 2, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE),     -- Certificaciones: Ver, crear, editar, exportar
+  (4, 3, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE),     -- Auditorías: Ver, crear, editar, exportar
+  (4, 4, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE),     -- Hallazgos: Ver, crear, editar, exportar
+  (4, 5, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE),   -- Políticas: Solo ver y exportar
+  (4, 6, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE),    -- Reportes: Ver, crear, exportar
+  (4, 7, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Usuarios: Solo ver
+  (4, 8, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE), -- Permisos: Sin acceso
+  (4, 9, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE); -- Registro: Sin acceso
+
+-- ====================================================================
+-- PERMISOS POR ROL - AUDITOR INTERNO
+-- ====================================================================
+INSERT INTO `role_permissions` (`role_id`, `module_id`, `can_view`, `can_create`, `can_edit`, `can_delete`, `can_export`, `can_approve`) 
+VALUES 
+  (5, 1, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE),   -- Dashboard: Ver y exportar
+  (5, 2, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE),   -- Certificaciones: Solo ver y exportar
+  (5, 3, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE),     -- Auditorías: Ver, crear, editar, exportar (no eliminar)
+  (5, 4, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE),     -- Hallazgos: Ver, crear, editar, exportar (no eliminar)
+  (5, 5, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE),   -- Políticas: Solo ver y exportar
+  (5, 6, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE),    -- Reportes: Ver, crear, exportar
+  (5, 7, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Usuarios: Solo ver
+  (5, 8, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE), -- Permisos: Sin acceso
+  (5, 9, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE); -- Registro: Sin acceso
+
+-- ====================================================================
+-- PERMISOS POR ROL - AUDITOR
+-- ====================================================================
+INSERT INTO `role_permissions` (`role_id`, `module_id`, `can_view`, `can_create`, `can_edit`, `can_delete`, `can_export`, `can_approve`) 
+VALUES 
+  (6, 1, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Dashboard: Solo ver
+  (6, 2, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE),   -- Certificaciones: Ver y exportar
+  (6, 3, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE),    -- Auditorías: Ver, crear, exportar
+  (6, 4, TRUE, TRUE, FALSE, FALSE, TRUE, FALSE),    -- Hallazgos: Ver, crear, exportar
+  (6, 5, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Políticas: Solo ver
+  (6, 6, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE),   -- Reportes: Ver y exportar
+  (6, 7, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE), -- Usuarios: Sin acceso
+  (6, 8, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE), -- Permisos: Sin acceso
+  (6, 9, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE); -- Registro: Sin acceso
+
+-- ====================================================================
+-- PERMISOS POR ROL - USUARIO GENERAL
+-- ====================================================================
+INSERT INTO `role_permissions` (`role_id`, `module_id`, `can_view`, `can_create`, `can_edit`, `can_delete`, `can_export`, `can_approve`) 
+VALUES 
+  (7, 1, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Dashboard: Solo ver
+  (7, 2, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Certificaciones: Solo ver
+  (7, 3, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Auditorías: Solo ver
+  (7, 4, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Hallazgos: Solo ver
+  (7, 5, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Políticas: Solo ver
+  (7, 6, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),  -- Reportes: Solo ver
+  (7, 7, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE), -- Usuarios: Sin acceso
+  (7, 8, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE), -- Permisos: Sin acceso
+  (7, 9, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE); -- Registro: Sin acceso
 
 -- ====================================================================
 -- CREAR ÍNDICES ADICIONALES PARA OPTIMIZAR QUERIES
