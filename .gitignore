@@ -3,8 +3,7 @@
 # ====================================================================
 
 # Archivos de configuración local (IMPORTANTE: No compartir credenciales)
-.env
-config_local.py
+
 
 # Cache de Python
 __pycache__/
