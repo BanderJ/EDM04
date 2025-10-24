@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, send_file, current_app
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, send_file, send_from_directory, current_app, abort
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
@@ -386,6 +386,21 @@ def delete_certification(cert_id):
         flash(f'Error al eliminar: {str(e)}', 'danger')
     
     return redirect(url_for('certifications.list_certifications'))
+
+@certifications_bp.route('/document/<int:cert_id>')
+@login_required
+def view_document(cert_id):
+    """Servir documento de certificación para vista previa"""
+    certification = Certification.query.get_or_404(cert_id)
+    
+    if not certification.document_path or not os.path.exists(certification.document_path):
+        abort(404, description="Documento no encontrado")
+    
+    # Obtener el directorio y nombre del archivo
+    directory = os.path.dirname(certification.document_path)
+    filename = os.path.basename(certification.document_path)
+    
+    return send_from_directory(directory, filename)
 
 # ============ AUDITORÍAS ============
 @audits_bp.route('/')
