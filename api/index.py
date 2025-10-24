@@ -46,8 +46,12 @@ def forbidden_error(error):
     return render_template('errors/403.html'), 403
 
 # Exportar la aplicación para Vercel
-# Vercel busca tanto 'app' como 'handler'
-handler = app
+# Vercel necesita una función WSGI
+def handler(environ, start_response):
+    """Handler WSGI para Vercel"""
+    return app(environ, start_response)
+
+# También exportar app para compatibilidad
 application = app
 
 # Para desarrollo local
