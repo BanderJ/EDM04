@@ -13,8 +13,11 @@ if project_dir not in sys.path:
 # Cargar variables de entorno
 load_dotenv(os.path.join(project_dir, '.env'))
 
-# Importar la aplicación desde app.py (no desde el paquete app/)
-from app import app as application
+# Importar create_app desde el paquete app/
+from app import create_app
 
-# Para compatibilidad con diferentes servidores
+# Crear la aplicación
+application = create_app(os.environ.get('FLASK_ENV', 'production'))
+
+# Alias para compatibilidad
 app = application
