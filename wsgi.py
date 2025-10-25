@@ -1,20 +1,20 @@
 """
-WSGI Config para PythonAnywhere
+WSGI Config para producción (EC2, PythonAnywhere, etc.)
 """
 import sys
 import os
 from dotenv import load_dotenv
 
-# Agregar el path del proyecto
-path = '/home/TU_USUARIO/EDM04'  # Cambiar TU_USUARIO por tu nombre de usuario de PythonAnywhere
-if path not in sys.path:
-    sys.path.insert(0, path)
+# Agregar el directorio actual al path
+project_dir = os.path.dirname(os.path.abspath(__file__))
+if project_dir not in sys.path:
+    sys.path.insert(0, project_dir)
 
 # Cargar variables de entorno
-load_dotenv(os.path.join(path, '.env'))
+load_dotenv(os.path.join(project_dir, '.env'))
 
-# Importar la aplicación
-from app import create_app
+# Importar la aplicación desde app.py (no desde el paquete app/)
+from app import app as application
 
-# Crear aplicación
-application = create_app(os.environ.get('FLASK_ENV', 'production'))
+# Para compatibilidad con diferentes servidores
+app = application
