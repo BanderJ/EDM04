@@ -84,47 +84,68 @@
                     </div>
                     <hr>
                     <ul class="nav flex-column">
+                        {% if check_permission('dashboard', 'view') %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('dashboard.index') }}">
                                 <i class="fas fa-home"></i> Inicio
                             </a>
                         </li>
+                        {% endif %}
+                        
+                        {% if check_permission('certifications', 'view') %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('certifications.list_certifications') }}">
                                 <i class="fas fa-certificate"></i> Certificaciones
                             </a>
                         </li>
+                        {% endif %}
+                        
+                        {% if check_permission('audits', 'view') %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('audits.list_audits') }}">
                                 <i class="fas fa-clipboard-check"></i> Auditorías
                             </a>
                         </li>
+                        {% endif %}
+                        
+                        {% if check_permission('policies', 'view') %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('policies.list_policies') }}">
                                 <i class="fas fa-file-contract"></i> Políticas
                             </a>
                         </li>
+                        {% endif %}
+                        
+                        {% if check_permission('reports', 'view') %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('reports.index') }}">
                                 <i class="fas fa-chart-bar"></i> Reportes
                             </a>
                         </li>
-                        {% if current_user.role == 'administrador' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('admin.list_users') }}">
-                                    <i class="fas fa-users"></i> Administrar Usuarios
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('admin.permissions') }}">
-                                    <i class="fas fa-user-shield"></i> Gestión de Permisos
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('admin.audit_log') }}">
-                                    <i class="fas fa-history"></i> Registro de Sistema
-                                </a>
-                            </li>
+                        {% endif %}
+                        
+                        {% if check_permission('users', 'view') %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin.list_users') }}">
+                                <i class="fas fa-users"></i> Administrar Usuarios
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% if check_permission('permissions', 'view') %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin.permissions') }}">
+                                <i class="fas fa-user-shield"></i> Gestión de Permisos
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% if check_permission('audit_logs', 'view') %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin.audit_log') }}">
+                                <i class="fas fa-history"></i> Registro de Sistema
+                            </a>
+                        </li>
                         {% endif %}
                     </ul>
                 </div>

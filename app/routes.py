@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import os
 from app.models import db, User, Certification, Audit, AuditFinding, Policy, PolicyConfirmation, Alert, AuditLog, UserRole, CertificationStatus
 from app.utils import allowed_file, save_upload_file, send_email_alert, generate_pdf_report, generate_excel_report
+from app.decorators import require_permission, admin_required
 
 # Blueprints
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -115,6 +116,7 @@ def url_has_allowed_host_and_scheme(url, allowed_hosts=None, require_https=False
 # ============ DASHBOARD ============
 @dashboard_bp.route('/')
 @login_required
+@require_permission('dashboard', 'view')
 def index():
     """Panel de control principal"""
     try:
@@ -192,6 +194,7 @@ def mark_alert_as_read(alert_id):
 # ============ CERTIFICACIONES ============
 @certifications_bp.route('/')
 @login_required
+@require_permission('certifications', 'view')
 def list_certifications():
     """Listar todas las certificaciones"""
     page = request.args.get('page', 1, type=int)
@@ -212,6 +215,7 @@ def list_certifications():
 
 @certifications_bp.route('/new', methods=['GET', 'POST'])
 @login_required
+@require_permission('certifications', 'create')
 def new_certification():
     """Crear nueva certificación"""
     if request.method == 'POST':
@@ -297,6 +301,7 @@ def new_certification():
 
 @certifications_bp.route('/<int:cert_id>/edit', methods=['GET', 'POST'])
 @login_required
+@require_permission('certifications', 'edit')
 def edit_certification(cert_id):
     """Editar certificación"""
     from app.utils import log_action, get_entity_changes
@@ -392,6 +397,7 @@ def edit_certification(cert_id):
 
 @certifications_bp.route('/<int:cert_id>/delete', methods=['POST'])
 @login_required
+@require_permission('certifications', 'delete')
 def delete_certification(cert_id):
     """Eliminar certificación"""
     certification = Certification.query.get_or_404(cert_id)
@@ -426,6 +432,7 @@ def delete_certification(cert_id):
 
 @certifications_bp.route('/document/<int:cert_id>')
 @login_required
+@require_permission('certifications', 'view')
 def view_document(cert_id):
     """Servir documento de certificación para vista previa"""
     certification = Certification.query.get_or_404(cert_id)
@@ -497,6 +504,7 @@ def view_document(cert_id):
 # ============ AUDITORÍAS ============
 @audits_bp.route('/')
 @login_required
+@require_permission('audits', 'view')
 def list_audits():
     """Listar auditorías"""
     page = request.args.get('page', 1, type=int)
@@ -516,6 +524,7 @@ def list_audits():
 
 @audits_bp.route('/new', methods=['GET', 'POST'])
 @login_required
+@require_permission('audits', 'create')
 def new_audit():
     """Crear nueva auditoría"""
     if request.method == 'POST':
@@ -564,6 +573,7 @@ def new_audit():
 
 @audits_bp.route('/<int:audit_id>/view')
 @login_required
+@require_permission('audits', 'view')
 def view_audit(audit_id):
     """Ver detalles de auditoría"""
     audit = Audit.query.get_or_404(audit_id)
@@ -574,6 +584,7 @@ def view_audit(audit_id):
 
 @audits_bp.route('/<int:audit_id>/edit', methods=['GET', 'POST'])
 @login_required
+@require_permission('audits', 'edit')
 def edit_audit(audit_id):
     """Editar auditoría"""
     audit = Audit.query.get_or_404(audit_id)
@@ -622,6 +633,7 @@ def edit_audit(audit_id):
 
 @audits_bp.route('/<int:audit_id>/delete', methods=['POST'])
 @login_required
+@require_permission('audits', 'delete')
 def delete_audit(audit_id):
     """Eliminar auditoría"""
     audit = Audit.query.get_or_404(audit_id)
@@ -650,6 +662,7 @@ def delete_audit(audit_id):
 
 @audits_bp.route('/<int:audit_id>/findings/new', methods=['GET', 'POST'])
 @login_required
+@require_permission('findings', 'create')
 def new_finding(audit_id):
     """Agregar hallazgo a auditoría"""
     audit = Audit.query.get_or_404(audit_id)
@@ -689,6 +702,7 @@ def new_finding(audit_id):
 
 @audits_bp.route('/<int:audit_id>/findings/<int:finding_id>/edit', methods=['GET', 'POST'])
 @login_required
+@require_permission('findings', 'edit')
 def edit_finding(audit_id, finding_id):
     """Editar hallazgo de auditoría"""
     audit = Audit.query.get_or_404(audit_id)
@@ -722,6 +736,7 @@ def edit_finding(audit_id, finding_id):
 
 @audits_bp.route('/<int:audit_id>/findings/<int:finding_id>/close', methods=['POST'])
 @login_required
+@require_permission('findings', 'approve')
 def close_finding(audit_id, finding_id):
     """Cerrar/Resolver un hallazgo"""
     audit = Audit.query.get_or_404(audit_id)
@@ -757,6 +772,7 @@ def close_finding(audit_id, finding_id):
 
 @audits_bp.route('/<int:audit_id>/findings/<int:finding_id>/reopen', methods=['POST'])
 @login_required
+@require_permission('findings', 'edit')
 def reopen_finding(audit_id, finding_id):
     """Reabrir un hallazgo cerrado"""
     audit = Audit.query.get_or_404(audit_id)
@@ -791,6 +807,7 @@ def reopen_finding(audit_id, finding_id):
 
 @audits_bp.route('/<int:audit_id>/findings/<int:finding_id>/delete', methods=['POST'])
 @login_required
+@require_permission('findings', 'delete')
 def delete_finding(audit_id, finding_id):
     """Eliminar un hallazgo"""
     audit = Audit.query.get_or_404(audit_id)
@@ -814,6 +831,7 @@ def delete_finding(audit_id, finding_id):
 # ============ POLÍTICAS ============
 @policies_bp.route('/')
 @login_required
+@require_permission('policies', 'view')
 def list_policies():
     """Listar políticas"""
     page = request.args.get('page', 1, type=int)
@@ -823,6 +841,7 @@ def list_policies():
 
 @policies_bp.route('/new', methods=['GET', 'POST'])
 @login_required
+@require_permission('policies', 'create')
 def new_policy():
     """Crear nueva política"""
     if current_user.role != UserRole.ADMINISTRADOR.value:
@@ -882,12 +901,19 @@ def new_policy():
 
 @policies_bp.route('/<int:policy_id>/view')
 @login_required
+@require_permission('policies', 'view')
 def view_policy(policy_id):
     """Ver detalles de política"""
     from app.utils import log_action
+    from sqlalchemy.orm import joinedload
     
     policy = Policy.query.get_or_404(policy_id)
-    confirmations = PolicyConfirmation.query.filter_by(policy_id=policy_id).all()
+    
+    # Cargar confirmaciones con la relación confirmed_by (usuario)
+    confirmations = PolicyConfirmation.query.options(
+        joinedload(PolicyConfirmation.confirmed_by)
+    ).filter_by(policy_id=policy_id).all()
+    
     confirmed_count = sum(1 for c in confirmations if c.confirmed)
     pending_count = len(confirmations) - confirmed_count
     
@@ -925,6 +951,7 @@ def view_policy(policy_id):
 
 @policies_bp.route('/<int:policy_id>/confirm', methods=['POST'])
 @login_required
+@require_permission('policies', 'approve')
 def confirm_policy(policy_id):
     """Confirmar cumplimiento de política"""
     policy = Policy.query.get_or_404(policy_id)
@@ -959,6 +986,7 @@ def confirm_policy(policy_id):
 
 @policies_bp.route('/<int:policy_id>/edit', methods=['GET', 'POST'])
 @login_required
+@require_permission('policies', 'edit')
 def edit_policy(policy_id):
     """Editar política existente"""
     from app.utils import log_action, get_entity_changes
@@ -1033,10 +1061,27 @@ def edit_policy(policy_id):
             db.session.rollback()
             flash(f'Error al actualizar política: {str(e)}', 'danger')
     
-    return render_template('policies/edit.html', policy=policy)
+    # Calcular estadísticas de confirmaciones
+    confirmations_count = PolicyConfirmation.query.filter_by(
+        policy_id=policy_id,
+        confirmed=True
+    ).count()
+    
+    pending_count = PolicyConfirmation.query.filter_by(
+        policy_id=policy_id,
+        confirmed=False
+    ).count()
+    
+    return render_template(
+        'policies/edit.html',
+        policy=policy,
+        confirmations_count=confirmations_count,
+        pending_count=pending_count
+    )
 
 @policies_bp.route('/<int:policy_id>/delete', methods=['POST'])
 @login_required
+@require_permission('policies', 'delete')
 def delete_policy(policy_id):
     """Eliminar política"""
     from app.utils import log_action
@@ -1072,6 +1117,7 @@ def delete_policy(policy_id):
 # ============ REPORTES ============
 @reports_bp.route('/')
 @login_required
+@require_permission('reports', 'view')
 def index():
     """Panel de reportes - Reporte general del sistema con filtros"""
     from datetime import datetime, timedelta
@@ -1228,6 +1274,7 @@ def index():
 
 @reports_bp.route('/certifications')
 @login_required
+@require_permission('reports', 'view')
 def certifications_report():
     """Reporte de certificaciones"""
     certifications = Certification.query.all()
@@ -1238,6 +1285,7 @@ def certifications_report():
 
 @reports_bp.route('/certifications/export/<format>')
 @login_required
+@require_permission('reports', 'export')
 def export_certifications(format):
     """Exportar reporte de certificaciones"""
     certifications = Certification.query.all()
@@ -1254,6 +1302,7 @@ def export_certifications(format):
 
 @reports_bp.route('/audits')
 @login_required
+@require_permission('reports', 'view')
 def audits_report():
     """Reporte de auditorías"""
     audits = Audit.query.all()
@@ -1262,6 +1311,7 @@ def audits_report():
 
 @reports_bp.route('/policies')
 @login_required
+@require_permission('reports', 'view')
 def policies_report():
     """Reporte de políticas y confirmaciones"""
     policies = Policy.query.filter_by(is_active=True).all()
@@ -1284,6 +1334,7 @@ def policies_report():
 # ============ ADMINISTRACIÓN ============
 @admin_bp.route('/users')
 @login_required
+@require_permission('users', 'view')
 def list_users():
     """Listar usuarios (solo administrador)"""
     from app.models import Role
@@ -1351,6 +1402,7 @@ def list_users():
 
 @admin_bp.route('/users/new', methods=['GET', 'POST'])
 @login_required
+@require_permission('users', 'create')
 def new_user():
     """Crear nuevo usuario"""
     if current_user.role != UserRole.ADMINISTRADOR.value:
@@ -1422,6 +1474,7 @@ def new_user():
 
 @admin_bp.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
 @login_required
+@require_permission('users', 'edit')
 def edit_user(user_id):
     """Editar usuario"""
     if current_user.role != UserRole.ADMINISTRADOR.value:
@@ -1462,6 +1515,7 @@ def edit_user(user_id):
 
 @admin_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
 @login_required
+@require_permission('users', 'edit')
 def toggle_user_status(user_id):
     """Activar/Desactivar usuario"""
     import json
@@ -1516,6 +1570,7 @@ def toggle_user_status(user_id):
 
 @admin_bp.route('/audit-log')
 @login_required
+@require_permission('audit_logs', 'view')
 def audit_log():
     """Ver registro de auditoría del sistema"""
     from datetime import date, timedelta
@@ -1574,6 +1629,7 @@ def audit_log():
 
 @admin_bp.route('/permissions')
 @login_required
+@require_permission('permissions', 'view')
 def permissions():
     """Gestión de permisos por rol"""
     from app.models import Role, Module, RolePermission
@@ -1585,6 +1641,25 @@ def permissions():
     # Obtener todos los roles y módulos
     roles = Role.query.order_by(Role.id).all()
     modules = Module.query.filter_by(is_active=True).order_by(Module.display_order).all()
+    
+    # Convertir roles a diccionarios para JSON
+    roles_data = []
+    for role in roles:
+        roles_data.append({
+            'id': role.id,
+            'name': role.name,
+            'display_name': role.display_name
+        })
+    
+    # Convertir módulos a diccionarios para JSON
+    modules_data = []
+    for module in modules:
+        modules_data.append({
+            'id': module.id,
+            'name': module.name,
+            'display_name': module.display_name,
+            'icon': module.icon or 'fa-cube'
+        })
     
     # Construir matriz de permisos
     permissions_matrix = {}
@@ -1620,12 +1695,13 @@ def permissions():
                 }
     
     return render_template('admin/permissions.html',
-                         roles=roles,
-                         modules=modules,
+                         roles=roles_data,
+                         modules=modules_data,
                          permissions_matrix=permissions_matrix)
 
 @admin_bp.route('/permissions/update', methods=['POST'])
 @login_required
+@require_permission('permissions', 'edit')
 def update_permission():
     """Actualizar un permiso específico"""
     from app.models import RolePermission

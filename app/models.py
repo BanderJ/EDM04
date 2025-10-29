@@ -258,6 +258,10 @@ class PolicyConfirmation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
+    # La relación con User ya está definida en User.policy_confirmations
+    # Se accede a través del backref 'confirmed_by'
+    # Usar: confirmation.confirmed_by para obtener el usuario
+    
     def mark_confirmed(self, ip_address=None):
         self.confirmed = True
         self.confirmed_date = datetime.now()

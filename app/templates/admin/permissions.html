@@ -4,42 +4,84 @@
 
 {% block extra_css %}
 <style>
+    .role-selector-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .role-selector-card .form-select {
+        font-size: 1.1rem;
+        padding: 0.75rem;
+        border: 2px solid #fff;
+        border-radius: 8px;
+    }
+    
+    .role-info {
+        background: rgba(255,255,255,0.2);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .permissions-card {
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    
     .permissions-table {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
     }
     
     .permissions-table th {
         background-color: #f8f9fa;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        font-size: 0.85rem;
-        padding: 0.5rem;
+        font-weight: 600;
+        padding: 1rem;
+        border-bottom: 2px solid #dee2e6;
     }
     
     .permissions-table td {
-        padding: 0.5rem;
-        text-align: center;
+        padding: 0.75rem 1rem;
         vertical-align: middle;
     }
     
-    .role-header {
-        writing-mode: vertical-rl;
-        transform: rotate(180deg);
-        white-space: nowrap;
-        min-width: 40px;
+    .module-row {
+        transition: background-color 0.2s;
+    }
+    
+    .module-row:hover {
+        background-color: #f8f9fa;
     }
     
     .module-name {
         font-weight: 500;
-        text-align: left;
-        padding-left: 1rem !important;
+        color: #2c3e50;
     }
     
-    .permission-toggle {
-        width: 40px;
-        height: 20px;
-        margin: 0 auto;
+    .module-icon {
+        width: 35px;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin-right: 0.75rem;
+    }
+    
+    .permission-switch {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .form-check-input {
+        width: 3rem;
+        height: 1.5rem;
+        cursor: pointer;
     }
     
     .form-check-input:checked {
@@ -47,24 +89,10 @@
         border-color: #28a745;
     }
     
-    .legend-item {
-        display: inline-block;
-        margin-right: 15px;
-        font-size: 0.9rem;
-    }
-    
-    .legend-icon {
-        width: 20px;
-        height: 20px;
-        display: inline-block;
-        border-radius: 3px;
-        margin-right: 5px;
-        vertical-align: middle;
-    }
-    
-    .table-scroll-container {
-        overflow-x: auto;
-        max-height: 70vh;
+    .permission-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin: 0;
     }
     
     .save-indicator {
@@ -72,18 +100,43 @@
         top: 80px;
         right: 20px;
         z-index: 1050;
+        animation: slideInRight 0.3s;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .permission-icon {
+        font-size: 1.2rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header d-flex justify-content-between align-items-center mb-4">
+<div class="page-header mb-4">
     <h2><i class="fas fa-user-shield"></i> Gestión de Permisos por Rol</h2>
-    <div>
-        <button class="btn btn-success" onclick="saveAllChanges()">
-            <i class="fas fa-save"></i> Guardar Todos los Cambios
-        </button>
-    </div>
+    <p class="text-muted">Seleccione un rol para gestionar sus permisos de acceso a los módulos del sistema</p>
 </div>
 
 <!-- Alertas -->
@@ -91,211 +144,281 @@
 
 <!-- Indicador de guardado -->
 <div id="saveIndicator" class="save-indicator" style="display: none;">
-    <div class="alert alert-info">
-        <i class="fas fa-spinner fa-spin"></i> Guardando cambios...
+    <div class="alert alert-success shadow-sm">
+        <i class="fas fa-check-circle"></i> Cambio guardado
     </div>
 </div>
 
-<!-- Leyenda -->
-<div class="card mb-4">
+<!-- Selector de Rol -->
+<div class="card role-selector-card mb-4">
     <div class="card-body">
-        <h5 class="card-title mb-3">
-            <i class="fas fa-info-circle"></i> Leyenda de Permisos
-        </h5>
-        <div class="legend-item">
-            <span class="legend-icon bg-success"></span>
-            <strong>Ver:</strong> Puede listar y ver detalles
-        </div>
-        <div class="legend-item">
-            <span class="legend-icon bg-primary"></span>
-            <strong>Crear:</strong> Puede crear nuevos registros
-        </div>
-        <div class="legend-item">
-            <span class="legend-icon bg-warning"></span>
-            <strong>Editar:</strong> Puede modificar registros existentes
-        </div>
-        <div class="legend-item">
-            <span class="legend-icon bg-danger"></span>
-            <strong>Eliminar:</strong> Puede eliminar registros
-        </div>
-        <div class="legend-item">
-            <span class="legend-icon bg-info"></span>
-            <strong>Exportar:</strong> Puede exportar datos
-        </div>
-        <div class="legend-item">
-            <span class="legend-icon" style="background: #6f42c1;"></span>
-            <strong>Aprobar:</strong> Puede aprobar/confirmar
-        </div>
-    </div>
-</div>
-
-<!-- Tabla de Permisos -->
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-scroll-container">
-            <table class="table table-bordered table-hover permissions-table mb-0">
-                <thead>
-                    <tr>
-                        <th rowspan="2" style="min-width: 200px;">Módulo</th>
-                        {% for role in roles %}
-                        <th colspan="6" class="text-center bg-primary text-white">
-                            {{ role.display_name }}
-                        </th>
-                        {% endfor %}
-                    </tr>
-                    <tr>
-                        {% for role in roles %}
-                        <th class="text-center" title="Ver/Listar">
-                            <i class="fas fa-eye text-success"></i>
-                        </th>
-                        <th class="text-center" title="Crear">
-                            <i class="fas fa-plus text-primary"></i>
-                        </th>
-                        <th class="text-center" title="Editar">
-                            <i class="fas fa-edit text-warning"></i>
-                        </th>
-                        <th class="text-center" title="Eliminar">
-                            <i class="fas fa-trash text-danger"></i>
-                        </th>
-                        <th class="text-center" title="Exportar">
-                            <i class="fas fa-download text-info"></i>
-                        </th>
-                        <th class="text-center" title="Aprobar">
-                            <i class="fas fa-check-circle" style="color: #6f42c1;"></i>
-                        </th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for module in modules %}
-                    <tr>
-                        <td class="module-name">
-                            <i class="fas {{ module.icon }}"></i> {{ module.display_name }}
-                        </td>
-                        {% for role in roles %}
-                            {% set perms = permissions_matrix[role.id][module.id] %}
-                            
-                            <!-- Ver -->
-                            <td>
-                                <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input permission-toggle" 
-                                           type="checkbox" 
-                                           {% if perms.can_view %}checked{% endif %}
-                                           data-role="{{ role.id }}"
-                                           data-module="{{ module.id }}"
-                                           data-permission="can_view"
-                                           onchange="togglePermission(this)">
-                                </div>
-                            </td>
-                            
-                            <!-- Crear -->
-                            <td>
-                                <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input permission-toggle" 
-                                           type="checkbox" 
-                                           {% if perms.can_create %}checked{% endif %}
-                                           data-role="{{ role.id }}"
-                                           data-module="{{ module.id }}"
-                                           data-permission="can_create"
-                                           onchange="togglePermission(this)">
-                                </div>
-                            </td>
-                            
-                            <!-- Editar -->
-                            <td>
-                                <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input permission-toggle" 
-                                           type="checkbox" 
-                                           {% if perms.can_edit %}checked{% endif %}
-                                           data-role="{{ role.id }}"
-                                           data-module="{{ module.id }}"
-                                           data-permission="can_edit"
-                                           onchange="togglePermission(this)">
-                                </div>
-                            </td>
-                            
-                            <!-- Eliminar -->
-                            <td>
-                                <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input permission-toggle" 
-                                           type="checkbox" 
-                                           {% if perms.can_delete %}checked{% endif %}
-                                           data-role="{{ role.id }}"
-                                           data-module="{{ module.id }}"
-                                           data-permission="can_delete"
-                                           onchange="togglePermission(this)">
-                                </div>
-                            </td>
-                            
-                            <!-- Exportar -->
-                            <td>
-                                <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input permission-toggle" 
-                                           type="checkbox" 
-                                           {% if perms.can_export %}checked{% endif %}
-                                           data-role="{{ role.id }}"
-                                           data-module="{{ module.id }}"
-                                           data-permission="can_export"
-                                           onchange="togglePermission(this)">
-                                </div>
-                            </td>
-                            
-                            <!-- Aprobar -->
-                            <td>
-                                <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input permission-toggle" 
-                                           type="checkbox" 
-                                           {% if perms.can_approve %}checked{% endif %}
-                                           data-role="{{ role.id }}"
-                                           data-module="{{ module.id }}"
-                                           data-permission="can_approve"
-                                           onchange="togglePermission(this)">
-                                </div>
-                            </td>
-                        {% endfor %}
-                    </tr>
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <label class="form-label mb-2">
+                    <i class="fas fa-user-tag"></i> Seleccione un Rol:
+                </label>
+                <select class="form-select form-select-lg" id="roleSelector" onchange="loadRolePermissions()">
+                    <option value="">-- Seleccione un rol --</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}" data-name="{{ role.name }}" data-display="{{ role.display_name }}">
+                        {{ role.display_name }}
+                    </option>
                     {% endfor %}
-                </tbody>
-            </table>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <div id="roleInfo" class="role-info" style="display: none;">
+                    <h5 class="mb-2">
+                        <i class="fas fa-info-circle"></i> <span id="selectedRoleName"></span>
+                    </h5>
+                    <p class="mb-0 small" id="roleDescription"></p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Información adicional -->
-<div class="alert alert-info mt-4">
-    <i class="fas fa-info-circle"></i>
-    <strong>Nota:</strong> Los cambios se guardan automáticamente al cambiar cada toggle. 
-    Los usuarios deberán cerrar sesión y volver a entrar para que los cambios tomen efecto.
+<!-- Estado vacío -->
+<div id="emptyState" class="card permissions-card">
+    <div class="card-body empty-state">
+        <i class="fas fa-hand-pointer"></i>
+        <h4>Seleccione un rol para comenzar</h4>
+        <p class="text-muted">
+            Use el selector de arriba para elegir un rol y gestionar sus permisos de acceso
+        </p>
+    </div>
+</div>
+
+<!-- Tabla de Permisos (oculta inicialmente) -->
+<div id="permissionsContainer" style="display: none;">
+    <div class="card permissions-card">
+        <div class="card-header bg-white border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list-check"></i> Permisos de Módulos
+                </h5>
+                <span class="badge bg-primary" id="modulesCount">0 módulos</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover permissions-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">Módulo</th>
+                            <th class="text-center" style="width: 11.67%;">
+                                <div class="permission-icon text-success">
+                                    <i class="fas fa-eye"></i>
+                                </div>
+                                <div class="permission-label">Ver</div>
+                            </th>
+                            <th class="text-center" style="width: 11.67%;">
+                                <div class="permission-icon text-primary">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+                                <div class="permission-label">Crear</div>
+                            </th>
+                            <th class="text-center" style="width: 11.67%;">
+                                <div class="permission-icon text-warning">
+                                    <i class="fas fa-edit"></i>
+                                </div>
+                                <div class="permission-label">Editar</div>
+                            </th>
+                            <th class="text-center" style="width: 11.67%;">
+                                <div class="permission-icon text-danger">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                                <div class="permission-label">Eliminar</div>
+                            </th>
+                            <th class="text-center" style="width: 11.67%;">
+                                <div class="permission-icon text-info">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                                <div class="permission-label">Exportar</div>
+                            </th>
+                            <th class="text-center" style="width: 11.67%;">
+                                <div class="permission-icon" style="color: #6f42c1;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="permission-label">Aprobar</div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="permissionsTableBody">
+                        <!-- Se llenará dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Información adicional -->
+    <div class="alert alert-info mt-3">
+        <i class="fas fa-info-circle"></i>
+        <strong>Nota:</strong> Los cambios se guardan automáticamente. 
+        Los usuarios deberán cerrar sesión y volver a entrar para que los cambios tomen efecto.
+    </div>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let pendingChanges = [];
+// Datos de permisos (desde el servidor)
+const permissionsMatrix = {{ permissions_matrix|tojson }};
+const modules = {{ modules|tojson }};
+
+// Descripciones de roles
+const roleDescriptions = {
+    'usuario': 'Acceso básico de lectura al sistema',
+    'auditor': 'Puede gestionar auditorías y hallazgos',
+    'auditor_interno': 'Auditor con permisos adicionales para auditorías internas',
+    'jefe_produccion': 'Gestiona módulos relacionados con producción',
+    'jefe_calidad': 'Gestiona certificaciones y calidad',
+    'jefe_unidad': 'Supervisión general de unidades',
+    'administrador': 'Control total del sistema'
+};
+
+let currentRoleId = null;
+
+function loadRolePermissions() {
+    const selector = document.getElementById('roleSelector');
+    const roleId = selector.value;
+    
+    if (!roleId) {
+        // Mostrar estado vacío
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('permissionsContainer').style.display = 'none';
+        document.getElementById('roleInfo').style.display = 'none';
+        currentRoleId = null;
+        return;
+    }
+    
+    currentRoleId = parseInt(roleId);
+    const selectedOption = selector.options[selector.selectedIndex];
+    const roleName = selectedOption.dataset.name;
+    const displayName = selectedOption.dataset.display;
+    
+    // Mostrar información del rol
+    document.getElementById('selectedRoleName').textContent = displayName;
+    document.getElementById('roleDescription').textContent = roleDescriptions[roleName] || '';
+    document.getElementById('roleInfo').style.display = 'block';
+    
+    // Ocultar estado vacío y mostrar tabla
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('permissionsContainer').style.display = 'block';
+    
+    // Actualizar contador de módulos
+    document.getElementById('modulesCount').textContent = modules.length + ' módulos';
+    
+    // Construir tabla de permisos
+    const tbody = document.getElementById('permissionsTableBody');
+    tbody.innerHTML = '';
+    
+    modules.forEach(module => {
+        const perms = permissionsMatrix[currentRoleId][module.id];
+        
+        const row = document.createElement('tr');
+        row.className = 'module-row';
+        row.innerHTML = `
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="module-icon">
+                        <i class="fas ${module.icon}"></i>
+                    </div>
+                    <span class="module-name">${module.display_name}</span>
+                </div>
+            </td>
+            <td>
+                <div class="permission-switch">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               ${perms.can_view ? 'checked' : ''}
+                               data-module="${module.id}"
+                               data-permission="can_view"
+                               onchange="togglePermission(this)">
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="permission-switch">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               ${perms.can_create ? 'checked' : ''}
+                               data-module="${module.id}"
+                               data-permission="can_create"
+                               onchange="togglePermission(this)">
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="permission-switch">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               ${perms.can_edit ? 'checked' : ''}
+                               data-module="${module.id}"
+                               data-permission="can_edit"
+                               onchange="togglePermission(this)">
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="permission-switch">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               ${perms.can_delete ? 'checked' : ''}
+                               data-module="${module.id}"
+                               data-permission="can_delete"
+                               onchange="togglePermission(this)">
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="permission-switch">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               ${perms.can_export ? 'checked' : ''}
+                               data-module="${module.id}"
+                               data-permission="can_export"
+                               onchange="togglePermission(this)">
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="permission-switch">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               ${perms.can_approve ? 'checked' : ''}
+                               data-module="${module.id}"
+                               data-permission="can_approve"
+                               onchange="togglePermission(this)">
+                    </div>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
 
 function togglePermission(checkbox) {
-    const roleId = checkbox.dataset.role;
+    if (!currentRoleId) return;
+    
     const moduleId = checkbox.dataset.module;
     const permissionType = checkbox.dataset.permission;
     const value = checkbox.checked;
     
-    // Agregar a cambios pendientes
-    pendingChanges.push({
-        roleId: roleId,
-        moduleId: moduleId,
-        permissionType: permissionType,
-        value: value
-    });
-    
-    // Guardar inmediatamente
-    savePermission(roleId, moduleId, permissionType, value);
+    // Guardar cambio
+    savePermission(currentRoleId, moduleId, permissionType, value);
 }
 
 function savePermission(roleId, moduleId, permissionType, value) {
-    // Mostrar indicador
-    document.getElementById('saveIndicator').style.display = 'block';
-    
     fetch('{{ url_for("admin.update_permission") }}', {
         method: 'POST',
         headers: {
@@ -310,29 +433,25 @@ function savePermission(roleId, moduleId, permissionType, value) {
     })
     .then(response => response.json())
     .then(data => {
-        document.getElementById('saveIndicator').style.display = 'none';
-        
         if (data.success) {
-            showAlert('Permiso actualizado correctamente', 'success');
+            showSaveIndicator();
         } else {
             showAlert('Error: ' + data.message, 'danger');
         }
     })
     .catch(error => {
-        document.getElementById('saveIndicator').style.display = 'none';
         showAlert('Error al guardar el permiso', 'danger');
         console.error('Error:', error);
     });
 }
 
-function saveAllChanges() {
-    if (pendingChanges.length === 0) {
-        showAlert('No hay cambios pendientes por guardar', 'info');
-        return;
-    }
+function showSaveIndicator() {
+    const indicator = document.getElementById('saveIndicator');
+    indicator.style.display = 'block';
     
-    showAlert('Todos los cambios se han guardado automáticamente', 'success');
-    pendingChanges = [];
+    setTimeout(() => {
+        indicator.style.display = 'none';
+    }, 2000);
 }
 
 function showAlert(message, type) {
@@ -357,13 +476,5 @@ function showAlert(message, type) {
         }
     }, 3000);
 }
-
-// Confirmar antes de salir si hay cambios pendientes
-window.addEventListener('beforeunload', function (e) {
-    if (pendingChanges.length > 0) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
-});
 </script>
 {% endblock %}

@@ -412,7 +412,7 @@
                 <div class="confirmation-item">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <strong>{{ confirmation.user.full_name }}</strong><br>
+                            <strong>{{ confirmation.confirmed_by.full_name }}</strong><br>
                             <small class="text-muted">{{ confirmation.confirmed_date.strftime('%d/%m/%Y %H:%M') if confirmation.confirmed_date else 'Pendiente' }}</small>
                         </div>
                         <div>

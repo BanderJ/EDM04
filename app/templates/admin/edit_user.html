@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Usuario - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section h5 {
+        color: #2c5282;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #4299e1;
+        padding-bottom: 10px;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #e53e3e;
+    }
+    
+    .password-strength {
+        height: 5px;
+        border-radius: 3px;
+        margin-top: 5px;
+        transition: all 0.3s;
+    }
+    
+    .password-strength.weak {
+        width: 33%;
+        background-color: #fc8181;
+    }
+    
+    .password-strength.medium {
+        width: 66%;
+        background-color: #f6ad55;
+    }
+    
+    .password-strength.strong {
+        width: 100%;
+        background-color: #68d391;
+    }
+    
+    .info-badge {
+        background: #e6f7ff;
+        border: 1px solid #91d5ff;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-user-edit"></i> Editar Usuario</h1>
+            <p class="text-muted">Modificar información del usuario: <strong>{{ user.username }}</strong></p>
+        </div>
+        <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Usuarios
+        </a>
+    </div>
+
+    <div class="info-badge">
+        <i class="fas fa-info-circle"></i> 
+        <strong>Usuario creado:</strong> {{ user.created_at.strftime('%d/%m/%Y %H:%M') }}
+        {% if user.updated_at %}
+        | <strong>Última modificación:</strong> {{ user.updated_at.strftime('%d/%m/%Y %H:%M') }}
+        {% endif %}
+    </div>
+
+    <form method="POST" id="editUserForm">
+        <!-- Información Básica -->
+        <div class="form-section">
+            <h5><i class="fas fa-user"></i> Información Básica</h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="username" class="form-label required-field">Nombre de Usuario</label>
+                    <input type="text" class="form-control" id="username" name="username" 
+                           value="{{ user.username }}" readonly>
+                    <small class="text-muted">El nombre de usuario no se puede modificar</small>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="full_name" class="form-label required-field">Nombre Completo</label>
+                    <input type="text" class="form-control" id="full_name" name="full_name" 
+                           value="{{ user.full_name }}" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label required-field">Correo Electrónico</label>
+                    <input type="email" class="form-control" id="email" name="email" 
+                           value="{{ user.email }}" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="department" class="form-label">Departamento</label>
+                    <input type="text" class="form-control" id="department" name="department" 
+                           value="{{ user.department or '' }}" placeholder="Ej: Producción, Calidad, etc.">
+                </div>
+            </div>
+        </div>
+
+        <!-- Seguridad -->
+        <div class="form-section">
+            <h5><i class="fas fa-key"></i> Seguridad</h5>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 
+                Deja el campo de contraseña vacío si no deseas cambiarla.
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="password" class="form-label">Nueva Contraseña (opcional)</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="password" name="password" 
+                               placeholder="Dejar vacío para mantener la actual">
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength" id="passwordStrength"></div>
+                    <small class="text-muted" id="passwordHelp"></small>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="password_confirm" class="form-label">Confirmar Contraseña</label>
+                    <input type="password" class="form-control" id="password_confirm" name="password_confirm" 
+                           placeholder="Repetir nueva contraseña">
+                    <small class="text-muted" id="passwordMatch"></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rol y Estado -->
+        <div class="form-section">
+            <h5><i class="fas fa-user-tag"></i> Rol y Estado</h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="role" class="form-label required-field">Rol</label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option value="usuario" {% if user.role == 'usuario' %}selected{% endif %}>Usuario General</option>
+                        <option value="auditor" {% if user.role == 'auditor' %}selected{% endif %}>Auditor</option>
+                        <option value="auditor_interno" {% if user.role == 'auditor_interno' %}selected{% endif %}>Auditor Interno</option>
+                        <option value="jefe_produccion" {% if user.role == 'jefe_produccion' %}selected{% endif %}>Jefe de Producción</option>
+                        <option value="jefe_calidad" {% if user.role == 'jefe_calidad' %}selected{% endif %}>Jefe de Calidad</option>
+                        <option value="jefe_unidad" {% if user.role == 'jefe_unidad' %}selected{% endif %}>Jefe de Unidad</option>
+                        <option value="administrador" {% if user.role == 'administrador' %}selected{% endif %}>Administrador</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Estado</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                               {% if user.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">
+                            Usuario Activo
+                        </label>
+                    </div>
+                    <small class="text-muted">Los usuarios inactivos no pueden iniciar sesión</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+        </div>
+    </form>
+
+    <!-- Panel de ayuda -->
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="fas fa-info-circle"></i> Información de Roles</h6>
+        </div>
+        <div class="card-body">
+            <ul class="mb-0">
+                <li><strong>Administrador:</strong> Acceso completo al sistema</li>
+                <li><strong>Jefe de Unidad:</strong> Gestión de su área asignada</li>
+                <li><strong>Jefe de Calidad:</strong> Gestión de calidad, auditorías y certificaciones</li>
+                <li><strong>Jefe de Producción:</strong> Gestión de producción y cumplimiento</li>
+                <li><strong>Auditor Interno:</strong> Realización y gestión de auditorías</li>
+                <li><strong>Auditor:</strong> Consulta y registro de auditorías</li>
+                <li><strong>Usuario General:</strong> Permisos básicos de consulta</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Mostrar/Ocultar contraseña
+    $('#togglePassword').on('click', function() {
+        const passwordInput = $('#password');
+        const icon = $(this).find('i');
+        
+        if (passwordInput.attr('type') === 'password') {
+            passwordInput.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            passwordInput.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
+
+    // Validar fortaleza de contraseña
+    $('#password').on('input', function() {
+        const password = $(this).val();
+        
+        if (password.length === 0) {
+            $('#passwordStrength').removeClass('weak medium strong');
+            $('#passwordHelp').text('');
+            return;
+        }
+        
+        let strength = 0;
+        
+        if (password.length >= 8) strength++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^a-zA-Z0-9]/.test(password)) strength++;
+        
+        $('#passwordStrength').removeClass('weak medium strong');
+        
+        if (strength <= 2) {
+            $('#passwordStrength').addClass('weak');
+            $('#passwordHelp').text('Contraseña débil').css('color', '#fc8181');
+        } else if (strength === 3) {
+            $('#passwordStrength').addClass('medium');
+            $('#passwordHelp').text('Contraseña media').css('color', '#f6ad55');
+        } else {
+            $('#passwordStrength').addClass('strong');
+            $('#passwordHelp').text('Contraseña fuerte').css('color', '#68d391');
+        }
+    });
+
+    // Validar que las contraseñas coincidan
+    $('#password_confirm').on('input', function() {
+        const password = $('#password').val();
+        const confirm = $(this).val();
+        const matchText = $('#passwordMatch');
+        
+        if (confirm.length === 0) {
+            matchText.text('');
+            return;
+        }
+        
+        if (password === confirm) {
+            matchText.text('✓ Las contraseñas coinciden').css('color', '#68d391');
+        } else {
+            matchText.text('✗ Las contraseñas no coinciden').css('color', '#fc8181');
+        }
+    });
+
+    // Validar formulario antes de enviar
+    $('#editUserForm').on('submit', function(e) {
+        const password = $('#password').val();
+        const confirm = $('#password_confirm').val();
+        
+        // Si se ingresó una contraseña, validar que coincidan
+        if (password.length > 0) {
+            if (password !== confirm) {
+                e.preventDefault();
+                alert('Las contraseñas no coinciden');
+                return false;
+            }
+            
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('La contraseña debe tener al menos 6 caracteres');
+                return false;
+            }
+        }
+        
+        // Deshabilitar botón para evitar doble envío
+        $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+        
+        return true;
+    });
+});
+</script>
+{% endblock %}
