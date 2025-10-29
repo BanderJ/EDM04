@@ -428,36 +428,69 @@ def delete_certification(cert_id):
 @login_required
 def view_document(cert_id):
     """Servir documento de certificación para vista previa"""
-    from flask import current_app
-    
     certification = Certification.query.get_or_404(cert_id)
     
-    # Si está en modo demostración, usar archivos de muestra
-    if current_app.config.get('USE_SAMPLE_DOCUMENTS', False):
-        sample_folder = current_app.config.get('SAMPLE_DOCUMENTS_FOLDER')
-        
-        # Mapear tipos de certificación a archivos de muestra
-        sample_files = {
-            'ISO 9001': 'certificacion_iso9001.pdf',
-            'HACCP': 'certificacion_haccp.pdf',
-            'BPM': 'certificacion_iso9001.pdf',  # Usar ISO como fallback
-            'default': 'certificacion_iso9001.pdf'
-        }
-        
-        # Obtener el archivo de muestra apropiado
-        cert_type = certification.certification_type or 'default'
-        sample_file = sample_files.get(cert_type, sample_files['default'])
-        
-        if os.path.exists(os.path.join(sample_folder, sample_file)):
-            return send_from_directory(sample_folder, sample_file)
+    print(f"\n=== DEBUG view_document ===")
+    print(f"Certification ID: {cert_id}")
+    print(f"Certification name: {certification.name}")
+    print(f"Document path from DB: {certification.document_path}")
     
-    # Modo normal: usar documento real subido
-    if not certification.document_path or not os.path.exists(certification.document_path):
+    if not certification.document_path:
+        print("ERROR: document_path is None")
         abort(404, description="Documento no encontrado")
+    
+    # Si el documento_path es una URL estática (comienza con /static/)
+    if certification.document_path.startswith('/static/'):
+        # Convertir URL estática a ruta física
+        # /static/sample_documents/archivo.pdf -> app/static/sample_documents/archivo.pdf
+        relative_path = certification.document_path.replace('/static/', '')
+        file_path = os.path.join(current_app.root_path, 'static', relative_path)
+        
+        print(f"Route type: Static URL")
+        print(f"Relative path: {relative_path}")
+        print(f"Full file path: {file_path}")
+        print(f"File exists: {os.path.exists(file_path)}")
+        
+        if os.path.exists(file_path):
+            directory = os.path.dirname(file_path)
+            filename = os.path.basename(file_path)
+            print(f"Serving from directory: {directory}")
+            print(f"Filename: {filename}")
+            return send_from_directory(directory, filename)
+        else:
+            print(f"ERROR: File not found at {file_path}")
+            abort(404, description=f"Documento no encontrado en: {file_path}")
+    
+    # Si contiene 'sample_documents/' pero no empieza con /static/
+    if 'sample_documents/' in certification.document_path:
+        filename = os.path.basename(certification.document_path)
+        sample_folder = os.path.join(current_app.root_path, 'static', 'sample_documents')
+        file_path = os.path.join(sample_folder, filename)
+        
+        print(f"Route type: Sample documents (relative)")
+        print(f"Sample folder: {sample_folder}")
+        print(f"Filename: {filename}")
+        print(f"Full path: {file_path}")
+        print(f"File exists: {os.path.exists(file_path)}")
+        
+        if os.path.exists(file_path):
+            return send_from_directory(sample_folder, filename)
+        else:
+            abort(404, description=f"Documento no encontrado: {filename}")
+    
+    # Modo normal: usar documento real subido (ruta física absoluta)
+    print(f"Route type: Physical path")
+    print(f"File exists: {os.path.exists(certification.document_path)}")
+    
+    if not os.path.exists(certification.document_path):
+        abort(404, description="Documento no encontrado en la ruta física")
     
     # Obtener el directorio y nombre del archivo
     directory = os.path.dirname(certification.document_path)
     filename = os.path.basename(certification.document_path)
+    
+    print(f"Directory: {directory}")
+    print(f"Filename: {filename}")
     
     return send_from_directory(directory, filename)
 
