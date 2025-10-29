@@ -153,8 +153,12 @@ class Certification(db.Model):
     def days_to_expiration(self):
         """Retorna los días faltantes para el vencimiento"""
         today = datetime.now().date()
-        return (self.expiration_date - today).days
-    
+        day_rest = (self.expiration_date - today).days
+        if day_rest < 0:
+            return 0
+        
+        return day_rest
+
     def __repr__(self):
         return f'<Certification {self.name}>'
 

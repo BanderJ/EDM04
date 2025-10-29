@@ -6,6 +6,19 @@
 CREATE DATABASE IF NOT EXISTS frutos_oro_db;
 USE frutos_oro_db;
 
+DROP TABLE IF EXISTS `audit_logs`;
+DROP TABLE IF EXISTS `alerts`;
+DROP TABLE IF EXISTS `policy_confirmations`;
+DROP TABLE IF EXISTS `policies`;
+DROP TABLE IF EXISTS `audit_findings`;
+DROP TABLE IF EXISTS `audits`;
+DROP TABLE IF EXISTS `role_permissions`;
+DROP TABLE IF EXISTS `modules`;
+DROP TABLE IF EXISTS `roles`;
+DROP TABLE IF EXISTS `certifications`;
+DROP TABLE IF EXISTS `users`;
+
+
 -- Tabla de Usuarios
 CREATE TABLE `users` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -214,12 +227,12 @@ VALUES
   ('auditor_interno', 'auditor.interno@frutosoro.com', 'pbkdf2:sha256:600000$5rxu7B06pvLeE26B$aa81fa13037e96263748cf9c304a38d424f2bb434576e079014f3784bf898733', 'Carlos González Martínez', 'Auditoría', 'auditor_interno', TRUE);
 
 -- Insertar certificaciones de ejemplo
-INSERT INTO `certifications` (`name`, `norm`, `issuing_entity`, `emission_date`, `expiration_date`, `responsible_id`, `status`, `notes`)
+INSERT INTO `certifications` (`name`, `norm`, `issuing_entity`, `emission_date`, `expiration_date`, `responsible_id`, `document_path`, `status`, `notes`)
 VALUES
-  ('GlobalG.A.P. Certificate', 'GlobalG.A.P.', 'GlobalG.A.P. Organization', '2022-01-15', '2025-01-15', 2, 'vigente', 'Certificación internacional para agricultura segura'),
-  ('HACCP Certification', 'HACCP', 'DIGESA', '2023-06-01', '2025-12-01', 3, 'vigente', 'Análisis de Peligros y Puntos Críticos de Control'),
-  ('BRC Certification', 'BRC', 'Bureau Veritas', '2022-09-20', '2025-03-20', 2, 'proxima_vencer', 'Norma de Seguridad Alimentaria Británica'),
-  ('ISO 22000:2018', 'ISO 22000', 'TÜV Rheinland', '2023-03-10', '2026-03-10', 3, 'vigente', 'Sistema de Gestión de Seguridad Alimentaria');
+  ('GlobalG.A.P. Certificate', 'GlobalG.A.P.', 'GlobalG.A.P. Organization', '2022-01-15', '2025-01-15', 2, './static/sample_documents/certificacion_iso9001.pdf', 'vigente', 'Certificación internacional para agricultura segura'),
+  ('HACCP Certification', 'HACCP', 'DIGESA', '2023-06-01', '2025-12-01', 3, './static/sample_documents/certificacion_haccp.pdf', 'vigente', 'Análisis de Peligros y Puntos Críticos de Control'),
+  ('BRC Certification', 'BRC', 'Bureau Veritas', '2022-09-20', '2025-03-20', 2, './static/sample_documents/certificacion_iso9001.pdf', 'proxima_vencer', 'Norma de Seguridad Alimentaria Británica'),
+  ('ISO 22000:2018', 'ISO 22000', 'TÜV Rheinland', '2023-03-10', '2026-03-10', 3, './static/sample_documents/certificacion_iso9001.pdf', 'vigente', 'Sistema de Gestión de Seguridad Alimentaria');
 
 -- Insertar auditorías de ejemplo
 INSERT INTO `audits` (`audit_type`, `scheduled_date`, `executed_date`, `evaluated_area`, `responsible_id`, `status`, `description`)

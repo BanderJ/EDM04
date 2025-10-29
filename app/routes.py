@@ -235,10 +235,29 @@ def new_certification():
             
             # Guardar documento si se adjuntó
             document_path = None
-            if 'document' in request.files:
-                file = request.files['document']
-                if file and allowed_file(file.filename):
-                    document_path = save_upload_file(file, 'certifications')
+            from flask import current_app
+            
+            # Verificar si está en modo demo (Vercel)
+            use_sample_docs = current_app.config.get('USE_SAMPLE_DOCUMENTS', False)
+            
+            if use_sample_docs:
+                # Modo demo: usar ruta estática de muestra
+                # Mapear tipo de certificación a archivo de muestra
+                sample_files = {
+                    'ISO 9001': 'static/sample_documents/certificacion_iso9001.pdf',
+                    'HACCP': 'static/sample_documents/certificacion_haccp.pdf',
+                    'BPM': 'static/sample_documents/certificacion_iso9001.pdf',
+                    'GlobalG.A.P.': 'static/sample_documents/certificacion_iso9001.pdf',
+                    'BRC': 'static/sample_documents/certificacion_iso9001.pdf',
+                }
+                # Usar archivo de muestra basado en la norma
+                document_path = sample_files.get(norm, 'static/sample_documents/certificacion_iso9001.pdf')
+            else:
+                # Modo normal: guardar archivo subido
+                if 'document' in request.files:
+                    file = request.files['document']
+                    if file and allowed_file(file.filename):
+                        document_path = save_upload_file(file, 'certifications')
             
             certification = Certification(
                 name=name,
@@ -269,6 +288,7 @@ def new_certification():
             return redirect(url_for('certifications.list_certifications'))
         
         except Exception as e:
+            db.session.rollback()
             flash(f'Error al registrar la certificación: {str(e)}', 'danger')
             return redirect(url_for('certifications.new_certification'))
     
@@ -317,10 +337,27 @@ def edit_certification(cert_id):
             certification.notes = new_data['notes']
             
             # Guardar nuevo documento si se adjuntó
-            if 'document' in request.files:
-                file = request.files['document']
-                if file and allowed_file(file.filename):
-                    certification.document_path = save_upload_file(file, 'certifications')
+            from flask import current_app
+            use_sample_docs = current_app.config.get('USE_SAMPLE_DOCUMENTS', False)
+            
+            if use_sample_docs:
+                # Modo demo: actualizar con archivo de muestra si es necesario
+                if 'document' in request.files and request.files['document'].filename:
+                    sample_files = {
+                        'ISO 9001': 'static/sample_documents/certificacion_iso9001.pdf',
+                        'HACCP': 'static/sample_documents/certificacion_haccp.pdf',
+                        'BPM': 'static/sample_documents/certificacion_iso9001.pdf',
+                    }
+                    certification.document_path = sample_files.get(
+                        certification.norm, 
+                        'static/sample_documents/certificacion_iso9001.pdf'
+                    )
+            else:
+                # Modo normal: guardar archivo subido
+                if 'document' in request.files:
+                    file = request.files['document']
+                    if file and allowed_file(file.filename):
+                        certification.document_path = save_upload_file(file, 'certifications')
             
             certification.get_status()
             certification.updated_at = datetime.now()
