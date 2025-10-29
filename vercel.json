@@ -9,14 +9,14 @@
       }
     },
     {
-      "src": "app/static/**",
+      "src": "public/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/static/sample_documents/(.*)",
-      "dest": "/app/static/sample_documents/$1",
+      "dest": "/public/static/sample_documents/$1",
       "headers": {
         "Cache-Control": "public, max-age=86400",
         "Content-Type": "application/pdf"
@@ -24,28 +24,28 @@
     },
     {
       "src": "/static/css/(.*)",
-      "dest": "/app/static/css/$1",
+      "dest": "/public/static/css/$1",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
       }
     },
     {
       "src": "/static/js/(.*)",
-      "dest": "/app/static/js/$1",
+      "dest": "/public/static/js/$1",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
       }
     },
     {
       "src": "/static/img/(.*)",
-      "dest": "/app/static/img/$1",
+      "dest": "/public/static/img/$1",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
       }
     },
     {
       "src": "/static/(.*)",
-      "dest": "/app/static/$1"
+      "dest": "/public/static/$1"
     },
     {
       "src": "/(.*)",
