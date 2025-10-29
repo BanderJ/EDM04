@@ -391,8 +391,30 @@ def delete_certification(cert_id):
 @login_required
 def view_document(cert_id):
     """Servir documento de certificación para vista previa"""
+    from flask import current_app
+    
     certification = Certification.query.get_or_404(cert_id)
     
+    # Si está en modo demostración, usar archivos de muestra
+    if current_app.config.get('USE_SAMPLE_DOCUMENTS', False):
+        sample_folder = current_app.config.get('SAMPLE_DOCUMENTS_FOLDER')
+        
+        # Mapear tipos de certificación a archivos de muestra
+        sample_files = {
+            'ISO 9001': 'certificacion_iso9001.pdf',
+            'HACCP': 'certificacion_haccp.pdf',
+            'BPM': 'certificacion_iso9001.pdf',  # Usar ISO como fallback
+            'default': 'certificacion_iso9001.pdf'
+        }
+        
+        # Obtener el archivo de muestra apropiado
+        cert_type = certification.certification_type or 'default'
+        sample_file = sample_files.get(cert_type, sample_files['default'])
+        
+        if os.path.exists(os.path.join(sample_folder, sample_file)):
+            return send_from_directory(sample_folder, sample_file)
+    
+    # Modo normal: usar documento real subido
     if not certification.document_path or not os.path.exists(certification.document_path):
         abort(404, description="Documento no encontrado")
     
@@ -486,17 +508,28 @@ def edit_audit(audit_id):
     """Editar auditoría"""
     audit = Audit.query.get_or_404(audit_id)
     
+    # Cargar findings manualmente (porque la relación es lazy='dynamic')
+    findings_list = audit.findings.all()
+    
     if request.method == 'POST':
         try:
+            # Actualizar campos de la auditoría
+            audit.audit_type = request.form.get('audit_type', 'interna')
             audit.scheduled_date = datetime.strptime(request.form.get('scheduled_date'), '%Y-%m-%d').date()
-            if request.form.get('executed_date'):
-                audit.executed_date = datetime.strptime(request.form.get('executed_date'), '%Y-%m-%d').date()
+            
+            # Fecha de ejecución es opcional
+            executed_date = request.form.get('executed_date')
+            if executed_date:
+                audit.executed_date = datetime.strptime(executed_date, '%Y-%m-%d').date()
+            else:
+                audit.executed_date = None
+            
             audit.evaluated_area = request.form.get('evaluated_area')
             audit.responsible_id = request.form.get('responsible_id')
             audit.description = request.form.get('description', '')
             audit.status = request.form.get('status', 'programada')
             
-            # Audit log
+            # Registrar en audit log
             log_entry = AuditLog(
                 user_id=current_user.id,
                 action='update',
@@ -511,10 +544,39 @@ def edit_audit(audit_id):
             return redirect(url_for('audits.view_audit', audit_id=audit_id))
         
         except Exception as e:
+            db.session.rollback()
             flash(f'Error al actualizar: {str(e)}', 'danger')
     
     users = User.query.filter_by(is_active=True).all()
-    return render_template('audits/edit.html', audit=audit, users=users)
+    return render_template('audits/edit.html', audit=audit, users=users, findings=findings_list)
+
+@audits_bp.route('/<int:audit_id>/delete', methods=['POST'])
+@login_required
+def delete_audit(audit_id):
+    """Eliminar auditoría"""
+    audit = Audit.query.get_or_404(audit_id)
+    
+    try:
+        # Registrar en audit log antes de eliminar
+        log_entry = AuditLog(
+            user_id=current_user.id,
+            action='delete',
+            entity_type='audit',
+            entity_id=audit_id,
+            ip_address=request.remote_addr
+        )
+        db.session.add(log_entry)
+        
+        # Eliminar auditoría (los findings se eliminan en cascada)
+        db.session.delete(audit)
+        db.session.commit()
+        
+        flash('Auditoría eliminada exitosamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar auditoría: {str(e)}', 'danger')
+    
+    return redirect(url_for('audits.list_audits'))
 
 @audits_bp.route('/<int:audit_id>/findings/new', methods=['GET', 'POST'])
 @login_required
@@ -941,8 +1003,158 @@ def delete_policy(policy_id):
 @reports_bp.route('/')
 @login_required
 def index():
-    """Panel de reportes"""
-    return render_template('reports/index.html')
+    """Panel de reportes - Reporte general del sistema con filtros"""
+    from datetime import datetime, timedelta
+    from sqlalchemy import func, and_
+    
+    # Obtener parámetros de filtro
+    date_from = request.args.get('date_from', type=str)
+    date_to = request.args.get('date_to', type=str)
+    module_filter = request.args.get('module', 'all')
+    user_filter = request.args.get('user_id', type=int)
+    action_filter = request.args.get('action', 'all')
+    
+    # Fechas por defecto (últimos 30 días)
+    if not date_from:
+        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = datetime.now().strftime('%Y-%m-%d')
+    
+    # Convertir a datetime
+    try:
+        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
+        date_to_obj = date_to_obj.replace(hour=23, minute=59, second=59)
+    except:
+        date_from_obj = datetime.now() - timedelta(days=30)
+        date_to_obj = datetime.now()
+    
+    # ============ ESTADÍSTICAS GENERALES ============
+    total_certifications = Certification.query.count()
+    total_audits = Audit.query.count()
+    total_policies = Policy.query.filter_by(is_active=True).count()
+    total_users = User.query.filter_by(is_active=True).count()
+    
+    # Certificaciones por estado
+    vigentes = Certification.query.filter_by(status='vigente').count()
+    proximas_vencer = Certification.query.filter_by(status='proxima_vencer').count()
+    vencidas = Certification.query.filter_by(status='vencida').count()
+    
+    # Auditorías por estado
+    audits_completadas = Audit.query.filter_by(status='completada').count()
+    audits_programadas = Audit.query.filter_by(status='programada').count()
+    
+    # ============ ACTIVIDAD DEL SISTEMA (CON FILTROS) ============
+    logs_query = AuditLog.query.filter(
+        and_(
+            AuditLog.created_at >= date_from_obj,
+            AuditLog.created_at <= date_to_obj
+        )
+    )
+    
+    # Aplicar filtros
+    if user_filter:
+        logs_query = logs_query.filter_by(user_id=user_filter)
+    
+    if action_filter and action_filter != 'all':
+        logs_query = logs_query.filter_by(action=action_filter)
+    
+    if module_filter and module_filter != 'all':
+        logs_query = logs_query.filter_by(entity_type=module_filter)
+    
+    # Obtener logs filtrados
+    system_logs = logs_query.order_by(AuditLog.created_at.desc()).limit(100).all()
+    total_logs = logs_query.count()
+    
+    # ============ ACCIONES POR USUARIO ============
+    user_activity = db.session.query(
+        User.id,
+        User.full_name,
+        User.role,
+        func.count(AuditLog.id).label('total_actions'),
+        func.count(func.distinct(func.date(AuditLog.created_at))).label('active_days')
+    ).join(
+        AuditLog, User.id == AuditLog.user_id
+    ).filter(
+        and_(
+            AuditLog.created_at >= date_from_obj,
+            AuditLog.created_at <= date_to_obj
+        )
+    ).group_by(User.id, User.full_name, User.role).order_by(
+        func.count(AuditLog.id).desc()
+    ).all()
+    
+    # ============ ACTIVIDAD POR TIPO DE ACCIÓN ============
+    activity_by_action = db.session.query(
+        AuditLog.action,
+        func.count(AuditLog.id).label('count')
+    ).filter(
+        and_(
+            AuditLog.created_at >= date_from_obj,
+            AuditLog.created_at <= date_to_obj,
+            AuditLog.action.isnot(None)  # Excluir acciones nulas
+        )
+    ).group_by(AuditLog.action).order_by(func.count(AuditLog.id).desc()).all()
+    
+    # ============ ACTIVIDAD POR MÓDULO ============
+    activity_by_module = db.session.query(
+        AuditLog.entity_type,
+        func.count(AuditLog.id).label('count')
+    ).filter(
+        and_(
+            AuditLog.created_at >= date_from_obj,
+            AuditLog.created_at <= date_to_obj,
+            AuditLog.entity_type.isnot(None)  # Excluir tipos nulos
+        )
+    ).group_by(AuditLog.entity_type).order_by(func.count(AuditLog.id).desc()).all()
+    
+    # ============ ACTIVIDAD POR DÍA (ÚLTIMOS 7 DÍAS) ============
+    seven_days_ago = datetime.now() - timedelta(days=7)
+    activity_by_day = db.session.query(
+        func.date(AuditLog.created_at).label('date'),
+        func.count(AuditLog.id).label('count')
+    ).filter(
+        AuditLog.created_at >= seven_days_ago
+    ).group_by(func.date(AuditLog.created_at)).order_by(func.date(AuditLog.created_at)).all()
+    
+    # ============ DATOS PARA FILTROS ============
+    all_users = User.query.filter_by(is_active=True).order_by(User.full_name).all()
+    
+    # Obtener todas las acciones únicas
+    all_actions = db.session.query(AuditLog.action).distinct().order_by(AuditLog.action).all()
+    all_actions = [action[0] for action in all_actions if action[0]]
+    
+    # Módulos disponibles
+    all_modules = db.session.query(AuditLog.entity_type).distinct().order_by(AuditLog.entity_type).all()
+    all_modules = [module[0] for module in all_modules if module[0]]
+    
+    return render_template('reports/index.html',
+                         # Estadísticas generales
+                         total_certifications=total_certifications,
+                         total_audits=total_audits,
+                         total_policies=total_policies,
+                         total_users=total_users,
+                         vigentes=vigentes,
+                         proximas_vencer=proximas_vencer,
+                         vencidas=vencidas,
+                         audits_completadas=audits_completadas,
+                         audits_programadas=audits_programadas,
+                         # Actividad
+                         system_logs=system_logs,
+                         total_logs=total_logs,
+                         user_activity=user_activity,
+                         activity_by_action=activity_by_action,
+                         activity_by_module=activity_by_module,
+                         activity_by_day=activity_by_day,
+                         # Filtros
+                         all_users=all_users,
+                         all_actions=all_actions,
+                         all_modules=all_modules,
+                         date_from=date_from,
+                         date_to=date_to,
+                         module_filter=module_filter,
+                         user_filter=user_filter,
+                         action_filter=action_filter)
 
 @reports_bp.route('/certifications')
 @login_required
@@ -1080,12 +1292,22 @@ def new_user():
             username = request.form.get('username')
             email = request.form.get('email')
             password = request.form.get('password')
+            password_confirm = request.form.get('password_confirm')
             full_name = request.form.get('full_name')
             department = request.form.get('department')
             role = request.form.get('role', UserRole.USUARIO.value)
             
+            # Validaciones
             if not all([username, email, password, full_name]):
-                flash('Todos los campos son obligatorios.', 'danger')
+                flash('Todos los campos obligatorios deben ser completados.', 'danger')
+                return redirect(url_for('admin.new_user'))
+            
+            if password != password_confirm:
+                flash('Las contraseñas no coinciden.', 'danger')
+                return redirect(url_for('admin.new_user'))
+            
+            if len(password) < 6:
+                flash('La contraseña debe tener al menos 6 caracteres.', 'danger')
                 return redirect(url_for('admin.new_user'))
             
             if User.query.filter_by(username=username).first():
@@ -1093,7 +1315,7 @@ def new_user():
                 return redirect(url_for('admin.new_user'))
             
             if User.query.filter_by(email=email).first():
-                flash('El email ya existe.', 'danger')
+                flash('El email ya está registrado.', 'danger')
                 return redirect(url_for('admin.new_user'))
             
             user = User(
@@ -1123,6 +1345,7 @@ def new_user():
             return redirect(url_for('admin.list_users'))
         
         except Exception as e:
+            db.session.rollback()
             flash(f'Error al crear usuario: {str(e)}', 'danger')
     
     return render_template('admin/new_user.html')

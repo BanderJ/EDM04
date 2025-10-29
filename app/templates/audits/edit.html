@@ -63,7 +63,7 @@
                 </div>
                 <div class="col-md-4">
                     <small class="text-muted">Total de hallazgos:</small><br>
-                    <strong>{{ audit.findings|length }}</strong>
+                    <strong>{{ findings|length }}</strong>
                 </div>
             </div>
         </div>
@@ -188,7 +188,7 @@
             <div class="modal-body">
                 <p>¿Está seguro de que desea eliminar esta auditoría?</p>
                 <div class="alert alert-warning">
-                    <i class="fas fa-info-circle"></i> Se eliminarán también <strong>{{ audit.findings|length }} hallazgo(s)</strong> asociado(s).
+                    <i class="fas fa-info-circle"></i> Se eliminarán también <strong>{{ findings|length }} hallazgo(s)</strong> asociado(s).
                 </div>
             </div>
             <div class="modal-footer">

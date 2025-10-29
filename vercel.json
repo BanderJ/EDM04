@@ -15,6 +15,14 @@
   ],
   "routes": [
     {
+      "src": "/static/sample_documents/(.*)",
+      "dest": "/app/static/sample_documents/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=86400",
+        "Content-Type": "application/pdf"
+      }
+    },
+    {
       "src": "/static/css/(.*)",
       "dest": "/app/static/css/$1",
       "headers": {
@@ -45,6 +53,7 @@
     }
   ],
   "env": {
-    "FLASK_ENV": "production"
+    "FLASK_ENV": "production",
+    "USE_SAMPLE_DOCUMENTS": "true"
   }
 }

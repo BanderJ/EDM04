@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Usuario - Frutos de Oro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .form-section h5 {
+        color: #2c5282;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #4299e1;
+        padding-bottom: 10px;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #e53e3e;
+    }
+    
+    .password-strength {
+        height: 5px;
+        border-radius: 3px;
+        margin-top: 5px;
+        transition: all 0.3s;
+    }
+    
+    .password-strength.weak {
+        width: 33%;
+        background-color: #fc8181;
+    }
+    
+    .password-strength.medium {
+        width: 66%;
+        background-color: #f6ad55;
+    }
+    
+    .password-strength.strong {
+        width: 100%;
+        background-color: #68d391;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <h1><i class="fas fa-user-plus"></i> Crear Nuevo Usuario</h1>
+        <p class="text-muted">Registrar un nuevo usuario en el sistema</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin.new_user') }}" id="newUserForm">
+                    
+                    <!-- Sección: Credenciales -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-key"></i> Credenciales de Acceso</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label required-field">Nombre de Usuario</label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       placeholder="Ej: jperez" required minlength="3" maxlength="80">
+                                <div class="form-text">Mínimo 3 caracteres, sin espacios</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label required-field">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       placeholder="usuario@frutosoro.com" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label required-field">Contraseña</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" 
+                                           required minlength="6" placeholder="Mínimo 6 caracteres">
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye" id="toggleIcon"></i>
+                                    </button>
+                                </div>
+                                <div class="password-strength" id="passwordStrength"></div>
+                                <div class="form-text" id="passwordHelp">Mínimo 6 caracteres</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="password_confirm" class="form-label required-field">Confirmar Contraseña</label>
+                                <input type="password" class="form-control" id="password_confirm" name="password_confirm" 
+                                       required minlength="6" placeholder="Repetir contraseña">
+                                <div class="form-text" id="matchHelp"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección: Información Personal -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-user"></i> Información Personal</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="full_name" class="form-label required-field">Nombre Completo</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" 
+                                       placeholder="Ej: Juan Pérez García" required maxlength="120">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="department" class="form-label">Departamento</label>
+                                <input type="text" class="form-control" id="department" name="department" 
+                                       placeholder="Ej: Producción, Calidad, etc." maxlength="120">
+                                <div class="form-text">Opcional</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label required-field">Rol del Usuario</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="">Seleccionar rol...</option>
+                                    <option value="usuario">Usuario General</option>
+                                    <option value="auditor">Auditor</option>
+                                    <option value="auditor_interno">Auditor Interno</option>
+                                    <option value="jefe_produccion">Jefe de Producción</option>
+                                    <option value="jefe_calidad">Jefe de Calidad</option>
+                                    <option value="jefe_unidad">Jefe de Unidad</option>
+                                    <option value="administrador">Administrador</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botones de Acción -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fas fa-save"></i> Crear Usuario
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Información de Ayuda -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-info-circle text-info"></i> Información sobre Roles</h6>
+                <ul class="small mb-0">
+                    <li><strong>Usuario General:</strong> Acceso básico de solo lectura</li>
+                    <li><strong>Auditor:</strong> Puede crear y consultar auditorías</li>
+                    <li><strong>Auditor Interno:</strong> Gestión completa de auditorías internas</li>
+                    <li><strong>Jefe de Producción:</strong> Gestión de certificaciones y auditorías de producción</li>
+                    <li><strong>Jefe de Calidad:</strong> Gestión completa de calidad, certificaciones y auditorías</li>
+                    <li><strong>Jefe de Unidad:</strong> Gestión completa de su área</li>
+                    <li><strong>Administrador:</strong> Acceso total al sistema</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Toggle password visibility
+    $('#togglePassword').on('click', function() {
+        const passwordField = $('#password');
+        const icon = $('#toggleIcon');
+        
+        if (passwordField.attr('type') === 'password') {
+            passwordField.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            passwordField.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
+    
+    // Password strength indicator
+    $('#password').on('input', function() {
+        const password = $(this).val();
+        const strength = $('#passwordStrength');
+        const help = $('#passwordHelp');
+        
+        if (password.length === 0) {
+            strength.removeClass('weak medium strong');
+            help.text('Mínimo 6 caracteres');
+            return;
+        }
+        
+        let score = 0;
+        
+        // Length
+        if (password.length >= 6) score++;
+        if (password.length >= 8) score++;
+        
+        // Has number
+        if (/\d/.test(password)) score++;
+        
+        // Has uppercase and lowercase
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+        
+        // Has special character
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+        
+        strength.removeClass('weak medium strong');
+        
+        if (score <= 2) {
+            strength.addClass('weak');
+            help.text('Contraseña débil').css('color', '#fc8181');
+        } else if (score <= 3) {
+            strength.addClass('medium');
+            help.text('Contraseña media').css('color', '#f6ad55');
+        } else {
+            strength.addClass('strong');
+            help.text('Contraseña fuerte').css('color', '#68d391');
+        }
+    });
+    
+    // Password match validation
+    $('#password_confirm').on('input', function() {
+        const password = $('#password').val();
+        const confirm = $(this).val();
+        const help = $('#matchHelp');
+        
+        if (confirm.length === 0) {
+            help.text('').removeClass('text-success text-danger');
+            return;
+        }
+        
+        if (password === confirm) {
+            help.text('✓ Las contraseñas coinciden').removeClass('text-danger').addClass('text-success');
+        } else {
+            help.text('✗ Las contraseñas no coinciden').removeClass('text-success').addClass('text-danger');
+        }
+    });
+    
+    // Form validation on submit
+    $('#newUserForm').on('submit', function(e) {
+        const password = $('#password').val();
+        const confirm = $('#password_confirm').val();
+        
+        if (password !== confirm) {
+            e.preventDefault();
+            alert('Las contraseñas no coinciden. Por favor, verifícalas.');
+            $('#password_confirm').focus();
+            return false;
+        }
+        
+        if (password.length < 6) {
+            e.preventDefault();
+            alert('La contraseña debe tener al menos 6 caracteres.');
+            $('#password').focus();
+            return false;
+        }
+        
+        // Disable submit button to prevent double submission
+        $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creando...');
+    });
+    
+    // Username validation (no spaces)
+    $('#username').on('input', function() {
+        let value = $(this).val();
+        value = value.replace(/\s/g, '').toLowerCase();
+        $(this).val(value);
+    });
+});
+</script>
+{% endblock %}

@@ -31,6 +31,10 @@ class Config:
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
     ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'}
     
+    # Modo de demostración (usar archivos de muestra en lugar de subidas reales)
+    USE_SAMPLE_DOCUMENTS = os.environ.get('USE_SAMPLE_DOCUMENTS', 'false').lower() == 'true'
+    SAMPLE_DOCUMENTS_FOLDER = os.path.join(os.path.dirname(__file__), 'app', 'static', 'sample_documents')
+    
     # Configuración de correo (lee desde .env)
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
