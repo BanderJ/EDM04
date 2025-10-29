@@ -28,11 +28,102 @@ def create_app(config_name='development'):
     
     # Registrar context processors para templates
     from app.decorators import check_permission
+    from app.utils import get_action_display_name
     
     @app.context_processor
     def inject_permissions():
-        """Inyecta la función check_permission en todos los templates"""
-        return dict(check_permission=check_permission)
+        """Inyecta funciones útiles en todos los templates"""
+        return dict(
+            check_permission=check_permission,
+            get_action_display_name=get_action_display_name
+        )
+    
+    # Registrar filtros personalizados
+    @app.template_filter('format_audit_changes')
+    def format_audit_changes(changes_text):
+        """Formatea el texto de cambios para que sea más legible"""
+        if not changes_text:
+            return ''
+        
+        import json
+        
+        # Si ya es texto descriptivo (no JSON), devolverlo tal cual
+        if not changes_text.strip().startswith('{'):
+            return changes_text
+        
+        # Intentar parsear como JSON y formatear
+        try:
+            changes_dict = json.loads(changes_text)
+            
+            # Importar modelos para obtener nombres reales
+            from app.models import Role, Module
+            
+            # Mapeo de nombres técnicos a nombres amigables
+            field_names = {
+                'role_id': 'Rol',
+                'module_id': 'Módulo',
+                'can_view': 'Permiso Ver',
+                'can_create': 'Permiso Crear',
+                'can_edit': 'Permiso Editar',
+                'can_delete': 'Permiso Eliminar',
+                'can_export': 'Permiso Exportar',
+                'can_approve': 'Permiso Aprobar',
+                'username': 'Usuario',
+                'old_status': 'Estado anterior',
+                'new_status': 'Estado nuevo',
+                'full_name': 'Nombre completo',
+                'email': 'Correo electrónico',
+                'role': 'Rol',
+                'department': 'Departamento'
+            }
+            
+            # Mapeo de valores booleanos
+            bool_map = {
+                True: '✓ Activado',
+                False: '✗ Desactivado',
+                'true': '✓ Activado',
+                'false': '✗ Desactivado'
+            }
+            
+            formatted_lines = []
+            for key, value in changes_dict.items():
+                # Traducir nombre del campo
+                field_label = field_names.get(key, key)
+                
+                # Formatear valor según el tipo de campo
+                if key == 'role_id':
+                    # Buscar nombre del rol
+                    try:
+                        role = Role.query.get(int(value))
+                        formatted_value = role.display_name if role else f"Rol #{value}"
+                    except:
+                        formatted_value = f"Rol #{value}"
+                        
+                elif key == 'module_id':
+                    # Buscar nombre del módulo
+                    try:
+                        module = Module.query.get(int(value))
+                        formatted_value = module.display_name if module else f"Módulo #{value}"
+                    except:
+                        formatted_value = f"Módulo #{value}"
+                        
+                elif isinstance(value, bool) or value in ['true', 'false']:
+                    formatted_value = bool_map.get(value, value)
+                    
+                elif value == 'active':
+                    formatted_value = '✓ Activo'
+                elif value == 'inactive':
+                    formatted_value = '✗ Inactivo'
+                else:
+                    formatted_value = value
+                
+                formatted_lines.append(f"• {field_label}: {formatted_value}")
+            
+            return '\n'.join(formatted_lines)
+            
+        except (json.JSONDecodeError, Exception) as e:
+            # Si falla el parseo, devolver el texto original
+            return changes_text
     
     # Registrar blueprints
     from app.routes import auth_bp, dashboard_bp, certifications_bp, audits_bp, policies_bp, reports_bp, admin_bp, api_bp

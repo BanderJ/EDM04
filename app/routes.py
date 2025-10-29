@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import os
 from app.models import db, User, Certification, Audit, AuditFinding, Policy, PolicyConfirmation, Alert, AuditLog, UserRole, CertificationStatus
-from app.utils import allowed_file, save_upload_file, send_email_alert, generate_pdf_report, generate_excel_report
+from app.utils import allowed_file, save_upload_file, send_email_alert, generate_pdf_report, generate_excel_report, get_local_now, get_local_date
 from app.decorators import require_permission, admin_required
 
 # Blueprints
@@ -134,8 +134,8 @@ def index():
         
         # Certificaciones próximas a vencer (próximos 30 días)
         upcoming_certifications = Certification.query.filter(
-            Certification.expiration_date <= datetime.now().date() + timedelta(days=30),
-            Certification.expiration_date >= datetime.now().date()
+            Certification.expiration_date <= get_local_date() + timedelta(days=30),
+            Certification.expiration_date >= get_local_date()
         ).order_by(Certification.expiration_date).limit(5).all()
         
         # Auditorías recientes
@@ -365,7 +365,7 @@ def edit_certification(cert_id):
                         certification.document_path = save_upload_file(file, 'certifications')
             
             certification.get_status()
-            certification.updated_at = datetime.now()
+            certification.updated_at = get_local_now()
             
             # Detectar cambios para audit log
             changes = get_entity_changes(
@@ -578,7 +578,7 @@ def view_audit(audit_id):
     """Ver detalles de auditoría"""
     audit = Audit.query.get_or_404(audit_id)
     findings = audit.findings.all()
-    today = datetime.now().date()
+    today = get_local_date()
     
     return render_template('audits/view.html', audit=audit, findings=findings, today=today)
 
@@ -1033,7 +1033,7 @@ def edit_policy(policy_id):
             policy.effective_date = new_data['effective_date']
             policy.requires_confirmation = new_data['requires_confirmation']
             policy.is_active = new_data['is_active']
-            policy.updated_at = datetime.now()
+            policy.updated_at = get_local_now()
             
             # Detectar cambios para audit log
             changes = get_entity_changes(
@@ -1132,9 +1132,9 @@ def index():
     
     # Fechas por defecto (últimos 30 días)
     if not date_from:
-        date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        date_from = (get_local_now() - timedelta(days=30)).strftime('%Y-%m-%d')
     if not date_to:
-        date_to = datetime.now().strftime('%Y-%m-%d')
+        date_to = get_local_now().strftime('%Y-%m-%d')
     
     # Convertir a datetime
     try:
@@ -1142,8 +1142,8 @@ def index():
         date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
         date_to_obj = date_to_obj.replace(hour=23, minute=59, second=59)
     except:
-        date_from_obj = datetime.now() - timedelta(days=30)
-        date_to_obj = datetime.now()
+        date_from_obj = get_local_now() - timedelta(days=30)
+        date_to_obj = get_local_now()
     
     # ============ ESTADÍSTICAS GENERALES ============
     total_certifications = Certification.query.count()
@@ -1225,7 +1225,7 @@ def index():
     ).group_by(AuditLog.entity_type).order_by(func.count(AuditLog.id).desc()).all()
     
     # ============ ACTIVIDAD POR DÍA (ÚLTIMOS 7 DÍAS) ============
-    seven_days_ago = datetime.now() - timedelta(days=7)
+    seven_days_ago = get_local_now() - timedelta(days=7)
     activity_by_day = db.session.query(
         func.date(AuditLog.created_at).label('date'),
         func.count(AuditLog.id).label('count')
@@ -1537,6 +1537,13 @@ def toggle_user_status(user_id):
         old_status = user.is_active
         user.is_active = not user.is_active
         
+        # Crear mensaje descriptivo
+        new_status_text = 'activó' if user.is_active else 'desactivó'
+        descriptive_message = (
+            f"{new_status_text} la cuenta del usuario '{user.full_name}' "
+            f"({user.username})"
+        )
+        
         # Registrar en audit log
         from app.utils import log_action
         log_action(
@@ -1544,11 +1551,7 @@ def toggle_user_status(user_id):
             action='toggle_user_status',
             entity_type='user',
             entity_id=user.id,
-            changes=json.dumps({
-                'username': user.username,
-                'old_status': 'active' if old_status else 'inactive',
-                'new_status': 'active' if user.is_active else 'inactive'
-            }),
+            changes=descriptive_message,
             ip_address=request.remote_addr
         )
         
@@ -1753,6 +1756,31 @@ def update_permission():
         
         db.session.commit()
         
+        # Obtener nombres descriptivos para el log
+        from app.models import Role, Module
+        role = Role.query.get(role_id)
+        module = Module.query.get(module_id)
+        
+        # Mapear nombres de permisos
+        permission_names = {
+            'can_view': 'Ver',
+            'can_create': 'Crear',
+            'can_edit': 'Editar',
+            'can_delete': 'Eliminar',
+            'can_export': 'Exportar',
+            'can_approve': 'Aprobar'
+        }
+        
+        permission_name = permission_names.get(permission_type, permission_type)
+        action_text = 'activó' if value else 'desactivó'
+        
+        # Crear mensaje descriptivo
+        descriptive_message = (
+            f"{action_text} el permiso '{permission_name}' "
+            f"para el rol '{role.display_name}' "
+            f"en el módulo '{module.display_name}'"
+        )
+        
         # Registrar en audit log
         from app.utils import log_action
         log_action(
@@ -1760,11 +1788,7 @@ def update_permission():
             action='update_permission',
             entity_type='role_permission',
             entity_id=perm.id,
-            changes=json.dumps({
-                'role_id': role_id,
-                'module_id': module_id,
-                permission_type: value
-            }),
+            changes=descriptive_message,
             ip_address=request.remote_addr
         )
         

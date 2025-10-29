@@ -1,6 +1,6 @@
 import os
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from flask import current_app
 import smtplib
 from email.mime.text import MIMEText
@@ -12,6 +12,28 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 import io
+
+# ============ ZONA HORARIA ============
+
+def get_local_now():
+    """
+    Obtiene la fecha y hora actual en la zona horaria de Perú (UTC-5)
+    
+    Returns:
+        datetime: Fecha y hora actual en zona horaria de Perú
+    """
+    # Perú está en UTC-5 (sin horario de verano)
+    peru_tz = timezone(timedelta(hours=-5))
+    return datetime.now(peru_tz)
+
+def get_local_date():
+    """
+    Obtiene la fecha actual en la zona horaria de Perú
+    
+    Returns:
+        date: Fecha actual en zona horaria de Perú
+    """
+    return get_local_now().date()
 
 # ============ GESTIÓN DE ARCHIVOS ============
 
@@ -33,7 +55,7 @@ def save_upload_file(file, subfolder='uploads'):
     
     # Asegurar nombre de archivo
     filename = secure_filename(file.filename)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+    timestamp = get_local_now().strftime('%Y%m%d_%H%M%S_')
     filename = timestamp + filename
     
     filepath = os.path.join(upload_folder, filename)
@@ -236,7 +258,7 @@ def generate_pdf_report(report_type, data):
     buffer.seek(0)
     
     # Guardar en archivo temporal
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = get_local_now().strftime('%Y%m%d_%H%M%S')
     filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], f'reporte_{report_type}_{timestamp}.pdf')
     
     with open(filepath, 'wb') as f:
@@ -312,7 +334,7 @@ def generate_excel_report(report_type, data):
         ws.column_dimensions[column_letter].width = adjusted_width
     
     # Guardar en archivo temporal
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = get_local_now().strftime('%Y%m%d_%H%M%S')
     filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], f'reporte_{report_type}_{timestamp}.xlsx')
     
     wb.save(filepath)
@@ -325,7 +347,7 @@ def check_certification_expiration_alerts():
     from app.models import Certification, Alert
     from datetime import timedelta
     
-    today = datetime.now().date()
+    today = get_local_date()
     
     # Verificar certificaciones próximas a vencer
     certifications = Certification.query.all()
@@ -402,19 +424,28 @@ def log_action(user_id, action, entity_type=None, entity_id=None, changes=None, 
         action: Acción realizada (create, update, delete, view, etc.)
         entity_type: Tipo de entidad (policy, audit, certification, user, etc.)
         entity_id: ID de la entidad afectada
-        changes: Diccionario con los cambios realizados (opcional)
+        changes: String descriptivo o diccionario con los cambios realizados (opcional)
         ip_address: Dirección IP del usuario
     """
     from app.models import AuditLog
     from app import db
     import json
     
+    # Si changes es un string, usarlo directamente; si es dict, convertir a JSON
+    if changes:
+        if isinstance(changes, str):
+            changes_text = changes
+        else:
+            changes_text = json.dumps(changes, ensure_ascii=False)
+    else:
+        changes_text = None
+    
     log_entry = AuditLog(
         user_id=user_id,
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
-        changes=json.dumps(changes, ensure_ascii=False) if changes else None,
+        changes=changes_text,
         ip_address=ip_address
     )
     
@@ -422,6 +453,52 @@ def log_action(user_id, action, entity_type=None, entity_id=None, changes=None, 
     db.session.commit()
     
     return log_entry
+
+def get_action_display_name(action, entity_type=None):
+    """
+    Convierte nombres de acciones técnicas a texto legible en español
+    
+    Args:
+        action: Acción técnica (create, update, delete, etc.)
+        entity_type: Tipo de entidad para contexto adicional
+    
+    Returns:
+        String con el nombre de la acción en español
+    """
+    action_map = {
+        'create': 'creó',
+        'update': 'actualizó',
+        'delete': 'eliminó',
+        'view': 'visualizó',
+        'view_policy': 'visualizó la política',
+        'confirm_policy': 'confirmó la política',
+        'update_permission': 'modificó permisos',
+        'toggle_user_status': 'cambió el estado del usuario',
+        'login': 'inició sesión',
+        'logout': 'cerró sesión',
+        'export': 'exportó',
+        'approve': 'aprobó',
+        'reject': 'rechazó',
+        'close': 'cerró',
+        'reopen': 'reabrió'
+    }
+    
+    entity_map = {
+        'policy': 'política',
+        'audit': 'auditoría',
+        'certification': 'certificación',
+        'user': 'usuario',
+        'finding': 'hallazgo',
+        'role_permission': 'permiso de rol'
+    }
+    
+    action_text = action_map.get(action, action)
+    
+    if entity_type and action in ['create', 'update', 'delete']:
+        entity_text = entity_map.get(entity_type, entity_type)
+        return f"{action_text} {entity_text}"
+    
+    return action_text
 
 def get_entity_changes(old_obj, new_data, fields):
     """

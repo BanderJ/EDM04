@@ -138,7 +138,8 @@ class Certification(db.Model):
     
     def get_status(self):
         """Calcula el estado de la certificación basado en la fecha de vencimiento"""
-        today = datetime.now().date()
+        from app.utils import get_local_date
+        today = get_local_date()
         days_until_expiration = (self.expiration_date - today).days
         
         if days_until_expiration < 0:
@@ -152,12 +153,13 @@ class Certification(db.Model):
     
     def days_to_expiration(self):
         """Retorna los días faltantes para el vencimiento"""
-        today = datetime.now().date()
-        day_rest = (self.expiration_date - today).days
-        if day_rest < 0:
+        from app.utils import get_local_date
+        today = get_local_date()
+        days_rest = (self.expiration_date - today).days
+        if days_rest < 0:
             return 0
         
-        return day_rest
+        return days_rest
 
     def __repr__(self):
         return f'<Certification {self.name}>'
@@ -223,7 +225,7 @@ class Policy(db.Model):
     description = db.Column(db.Text, nullable=False)
     content = db.Column(db.Text)
     version = db.Column(db.String(10), default='1.0')
-    effective_date = db.Column(db.Date, nullable=False, default=lambda: datetime.now().date())
+    effective_date = db.Column(db.Date, nullable=False, default=lambda: __import__('app.utils', fromlist=['get_local_date']).get_local_date())
     requires_confirmation = db.Column(db.Boolean, default=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -263,8 +265,9 @@ class PolicyConfirmation(db.Model):
     # Usar: confirmation.confirmed_by para obtener el usuario
     
     def mark_confirmed(self, ip_address=None):
+        from app.utils import get_local_now
         self.confirmed = True
-        self.confirmed_date = datetime.now()
+        self.confirmed_date = get_local_now()
         self.ip_address = ip_address
     
     def __repr__(self):
